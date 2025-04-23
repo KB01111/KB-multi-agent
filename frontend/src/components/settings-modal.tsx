@@ -1,31 +1,32 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useLocalStorage } from "@/hooks/use-local-storage";
-import { 
-  AppSettings, 
-  DEFAULT_SETTINGS, 
-  SETTINGS_STORAGE_KEY 
-} from "@/lib/settings-types";
-import { 
-  Key, 
-  Save, 
-  X, 
-  Moon, 
-  Sun, 
-  Bug, 
+
+import {
+  Key,
+  Save,
+  Moon,
+  Sun,
+  Bug,
   AlertCircle,
   Eye,
   EyeOff
 } from "lucide-react";
+
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { useLocalStorage } from "@/hooks/use-local-storage";
+import type {
+  AppSettings} from "@/lib/settings-types";
+import {
+  DEFAULT_SETTINGS,
+  SETTINGS_STORAGE_KEY
+} from "@/lib/settings-types";
 import { cn } from "@/lib/utils";
 
 // UI Components
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Separator } from "@/components/ui/separator";
-import { Checkbox } from "@/components/ui/checkbox";
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -90,49 +91,66 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[500px] animate-fade-in-up">
         <DialogHeader>
-          <DialogTitle>Application Settings</DialogTitle>
-          <DialogDescription>
-            Configure API keys and application settings
-          </DialogDescription>
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+              <Key className="h-5 w-5 text-primary" />
+            </div>
+            <div>
+              <DialogTitle className="text-xl">Application Settings</DialogTitle>
+              <DialogDescription>
+                Configure API keys and application settings
+              </DialogDescription>
+            </div>
+          </div>
         </DialogHeader>
 
         {/* Tabs */}
-        <div className="flex border-b mb-4">
+        <div className="flex border-b mb-6 mt-2">
           <button
             className={cn(
-              "px-4 py-2 font-medium text-sm",
-              activeTab === 'api-keys' 
-                ? "border-b-2 border-primary text-primary" 
+              "px-4 py-2 font-medium text-sm transition-all-fast relative",
+              activeTab === 'api-keys'
+                ? "text-primary"
                 : "text-muted-foreground hover:text-foreground"
             )}
             onClick={() => setActiveTab('api-keys')}
           >
-            <Key className="w-4 h-4 inline-block mr-2" />
-            API Keys
+            <div className="flex items-center gap-1.5">
+              <Key className="w-4 h-4" />
+              <span>API Keys</span>
+            </div>
+            {activeTab === 'api-keys' && (
+              <div className="absolute bottom-0 left-0 w-full h-0.5 bg-primary animate-fade-in" />
+            )}
           </button>
           <button
             className={cn(
-              "px-4 py-2 font-medium text-sm",
-              activeTab === 'features' 
-                ? "border-b-2 border-primary text-primary" 
+              "px-4 py-2 font-medium text-sm transition-all-fast relative",
+              activeTab === 'features'
+                ? "text-primary"
                 : "text-muted-foreground hover:text-foreground"
             )}
             onClick={() => setActiveTab('features')}
           >
-            <Sun className="w-4 h-4 inline-block mr-2" />
-            Features
+            <div className="flex items-center gap-1.5">
+              <Sun className="w-4 h-4" />
+              <span>Features</span>
+            </div>
+            {activeTab === 'features' && (
+              <div className="absolute bottom-0 left-0 w-full h-0.5 bg-primary animate-fade-in" />
+            )}
           </button>
         </div>
 
         {/* API Keys Tab */}
         {activeTab === 'api-keys' && (
-          <div className="space-y-4">
+          <div className="space-y-4 animate-fade-in">
             <div className="space-y-2">
               <label className="text-sm font-medium flex items-center justify-between">
                 <span>OpenAI API Key</span>
-                <button 
+                <button
                   onClick={() => setShowOpenAIKey(!showOpenAIKey)}
                   className="text-muted-foreground hover:text-foreground"
                 >
@@ -153,7 +171,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
             <div className="space-y-2">
               <label className="text-sm font-medium flex items-center justify-between">
                 <span>Langsmith API Key</span>
-                <button 
+                <button
                   onClick={() => setShowLangsmithKey(!showLangsmithKey)}
                   className="text-muted-foreground hover:text-foreground"
                 >
@@ -174,7 +192,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
             <div className="space-y-2">
               <label className="text-sm font-medium flex items-center justify-between">
                 <span>Copilot Cloud API Key</span>
-                <button 
+                <button
                   onClick={() => setShowCopilotKey(!showCopilotKey)}
                   className="text-muted-foreground hover:text-foreground"
                 >
@@ -195,7 +213,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
             <div className="space-y-2">
               <label className="text-sm font-medium flex items-center justify-between">
                 <span>Graphiti API Key</span>
-                <button 
+                <button
                   onClick={() => setShowGraphitiKey(!showGraphitiKey)}
                   className="text-muted-foreground hover:text-foreground"
                 >
@@ -217,45 +235,51 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
 
         {/* Features Tab */}
         {activeTab === 'features' && (
-          <div className="space-y-4">
-            <div className="flex items-center space-x-2">
-              <Checkbox 
+          <div className="space-y-4 animate-fade-in">
+            <div className="flex items-center space-x-2 p-2 rounded-md hover:bg-muted/50 transition-colors">
+              <Checkbox
                 id="dark-mode"
                 checked={settings.featureFlags.enableDarkMode}
-                onCheckedChange={(checked) => 
+                onCheckedChange={(checked) =>
                   updateFeatureFlag('enableDarkMode', checked === true)
                 }
+                className="data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"
               />
               <label
                 htmlFor="dark-mode"
-                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 flex items-center"
+                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 flex items-center cursor-pointer"
               >
-                <Moon className="w-4 h-4 mr-2" />
+                <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center mr-2">
+                  <Moon className="w-4 h-4 text-primary" />
+                </div>
                 Enable Dark Mode
               </label>
             </div>
 
-            <div className="flex items-center space-x-2">
-              <Checkbox 
+            <div className="flex items-center space-x-2 p-2 rounded-md hover:bg-muted/50 transition-colors">
+              <Checkbox
                 id="debug-mode"
                 checked={settings.featureFlags.enableDebugMode}
-                onCheckedChange={(checked) => 
+                onCheckedChange={(checked) =>
                   updateFeatureFlag('enableDebugMode', checked === true)
                 }
+                className="data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"
               />
               <label
                 htmlFor="debug-mode"
-                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 flex items-center"
+                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 flex items-center cursor-pointer"
               >
-                <Bug className="w-4 h-4 mr-2" />
+                <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center mr-2">
+                  <Bug className="w-4 h-4 text-primary" />
+                </div>
                 Enable Debug Mode
               </label>
             </div>
 
-            <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-md">
+            <div className="mt-4 p-3 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800/30 rounded-md">
               <div className="flex">
-                <AlertCircle className="w-5 h-5 text-amber-500 mr-2 flex-shrink-0" />
-                <p className="text-xs text-amber-800">
+                <AlertCircle className="w-5 h-5 text-amber-500 dark:text-amber-400 mr-2 flex-shrink-0 animate-pulse-subtle" />
+                <p className="text-xs text-amber-800 dark:text-amber-300">
                   Some features are experimental and may not work as expected.
                   Changes to these settings may require a page refresh to take effect.
                 </p>
@@ -264,11 +288,11 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
           </div>
         )}
 
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose}>
+        <DialogFooter className="gap-2">
+          <Button variant="outline" onClick={onClose} className="transition-all-fast hover-scale">
             Cancel
           </Button>
-          <Button onClick={saveSettings}>
+          <Button onClick={saveSettings} className="transition-all-fast hover-scale animate-fade-in">
             <Save className="w-4 h-4 mr-2" />
             Save Settings
           </Button>

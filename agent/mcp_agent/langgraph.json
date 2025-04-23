@@ -1,9 +1,9 @@
 {
-  "graphs": [
-    {
-      "id": "mcp-agent",
-      "path": "./agent.py",
-      "variable": "graph"
-    }
-  ]
+  "python_version": "3.12",
+  "dockerfile_lines": [],
+  "dependencies": ["."],
+  "graphs": {
+    "mcp-agent": "./agent.py:graph"
+  },
+  "env": ".env"
 }

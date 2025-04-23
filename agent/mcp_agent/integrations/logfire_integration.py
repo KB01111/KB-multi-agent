@@ -5,9 +5,17 @@ Provides logging and tracing capabilities for the agent.
 
 import os
 import logging
-import logfire
 from typing import Optional, Dict, Any, List, Union
 from contextlib import contextmanager
+
+# Try to import logfire, but provide a fallback if it's not installed
+try:
+    import logfire
+    LOGFIRE_AVAILABLE = True
+except ImportError:
+    LOGFIRE_AVAILABLE = False
+    logger = logging.getLogger(__name__)
+    logger.warning("Logfire module not found. Using fallback logging.")
 
 # Configure basic logging
 logging.basicConfig(level=logging.INFO)
@@ -28,8 +36,9 @@ class LogfireLogger:
             enabled: Whether Logfire logging is enabled. Defaults to True.
         """
         self.project_name = project_name or os.getenv("LOGFIRE_PROJECT", "kb-multi-agent")
-        self.enabled = enabled and self._check_logfire_configured()
-        
+        # Only enable if logfire is available and configured
+        self.enabled = enabled and LOGFIRE_AVAILABLE and self._check_logfire_configured()
+
         if self.enabled:
             try:
                 # Initialize Logfire
@@ -44,6 +53,10 @@ class LogfireLogger:
 
     def _check_logfire_configured(self) -> bool:
         """Check if Logfire is configured in the environment."""
+        # If logfire is not available, return False
+        if not LOGFIRE_AVAILABLE:
+            return False
+
         # Check for Logfire configuration file or environment variables
         if os.path.exists(os.path.expanduser("~/.logfire/default.toml")):
             return True
@@ -60,8 +73,10 @@ class LogfireLogger:
             data: Additional data to log with the event
         """
         if not self.enabled:
+            # Fallback to standard logging
+            logger.info(f"Event: {event_name} - Data: {data}")
             return
-        
+
         try:
             logfire.log(event_name, **(data or {}))
         except Exception as e:
@@ -76,8 +91,10 @@ class LogfireLogger:
             context: Additional context data
         """
         if not self.enabled:
+            # Fallback to standard logging
+            logger.error(f"Error: {error} - Context: {context}")
             return
-        
+
         try:
             logfire.error(
                 error,
@@ -97,9 +114,12 @@ class LogfireLogger:
             attributes: Additional attributes for the span
         """
         if not self.enabled:
-            yield
+            # Log span start/end with standard logging
+            logger.info(f"Span start: {name} - Attributes: {attributes}")
+            yield None
+            logger.info(f"Span end: {name}")
             return
-        
+
         try:
             with logfire.span(name, **(attributes or {})) as span:
                 yield span
@@ -107,9 +127,9 @@ class LogfireLogger:
             logger.warning(f"Failed to create Logfire span: {e}")
             yield None
 
-    def log_agent_request(self, 
-                         agent_id: str, 
-                         user_input: str, 
+    def log_agent_request(self,
+                         agent_id: str,
+                         user_input: str,
                          metadata: Optional[Dict[str, Any]] = None) -> None:
         """
         Log an agent request.
@@ -126,9 +146,9 @@ class LogfireLogger:
         }
         self.log_event("agent_request", data)
 
-    def log_agent_response(self, 
-                          agent_id: str, 
-                          response: str, 
+    def log_agent_response(self,
+                          agent_id: str,
+                          response: str,
                           metadata: Optional[Dict[str, Any]] = None) -> None:
         """
         Log an agent response.
@@ -145,9 +165,9 @@ class LogfireLogger:
         }
         self.log_event("agent_response", data)
 
-    def log_tool_call(self, 
-                     tool_name: str, 
-                     inputs: Dict[str, Any], 
+    def log_tool_call(self,
+                     tool_name: str,
+                     inputs: Dict[str, Any],
                      metadata: Optional[Dict[str, Any]] = None) -> None:
         """
         Log a tool call.
@@ -164,9 +184,9 @@ class LogfireLogger:
         }
         self.log_event("tool_call", data)
 
-    def log_tool_result(self, 
-                       tool_name: str, 
-                       result: Any, 
+    def log_tool_result(self,
+                       tool_name: str,
+                       result: Any,
                        metadata: Optional[Dict[str, Any]] = None) -> None:
         """
         Log a tool result.
@@ -183,9 +203,9 @@ class LogfireLogger:
         }
         self.log_event("tool_result", data)
 
-    def log_llm_call(self, 
-                    model: str, 
-                    prompt: Union[str, List[Dict[str, str]]], 
+    def log_llm_call(self,
+                    model: str,
+                    prompt: Union[str, List[Dict[str, str]]],
                     metadata: Optional[Dict[str, Any]] = None) -> None:
         """
         Log an LLM call.
@@ -197,7 +217,7 @@ class LogfireLogger:
         """
         # Convert prompt to string if it's a list of messages
         prompt_str = prompt if isinstance(prompt, str) else str(prompt)
-        
+
         data = {
             "model": model,
             "prompt": prompt_str,
@@ -205,9 +225,9 @@ class LogfireLogger:
         }
         self.log_event("llm_call", data)
 
-    def log_llm_response(self, 
-                        model: str, 
-                        response: str, 
+    def log_llm_response(self,
+                        model: str,
+                        response: str,
                         metadata: Optional[Dict[str, Any]] = None) -> None:
         """
         Log an LLM response.

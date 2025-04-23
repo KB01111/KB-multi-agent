@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+
 import { X, Plus, Save } from "lucide-react";
 
 type EntityFormProps = {
@@ -10,13 +11,13 @@ type EntityFormProps = {
     id: string;
     name: string;
     type: string;
-    properties: Record<string, any>;
+    properties: Record<string, unknown>;
   }) => void;
   initialEntity?: {
     id: string;
     name: string;
     type: string;
-    properties: Record<string, any>;
+    properties: Record<string, unknown>;
   };
 };
 
@@ -40,13 +41,13 @@ export const EntityForm: React.FC<EntityFormProps> = ({
         setEntityId(initialEntity.id);
         setEntityName(initialEntity.name);
         setEntityType(initialEntity.type);
-        
+
         // Convert properties object to array of key-value pairs
         const propsArray = Object.entries(initialEntity.properties).map(([key, value]) => ({
           key,
           value: String(value),
         }));
-        
+
         setProperties(propsArray.length > 0 ? propsArray : [{ key: "", value: "" }]);
       } else {
         // Reset form for new entity
@@ -76,7 +77,7 @@ export const EntityForm: React.FC<EntityFormProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     // Convert properties array to object
     const propertiesObject = properties.reduce((acc, { key, value }) => {
       if (key.trim()) {
@@ -84,14 +85,14 @@ export const EntityForm: React.FC<EntityFormProps> = ({
       }
       return acc;
     }, {} as Record<string, string>);
-    
+
     onSave({
       id: entityId || `entity-${Date.now()}`,
       name: entityName,
       type: entityType,
       properties: propertiesObject,
     });
-    
+
     onClose();
   };
 
@@ -99,57 +100,57 @@ export const EntityForm: React.FC<EntityFormProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999]">
-      <div className="bg-white rounded-lg p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-semibold">
+      <div className="bg-white rounded-lg p-4 w-full max-w-md max-h-[90vh] overflow-y-auto">
+        <div className="flex justify-between items-center mb-3">
+          <h2 className="text-base font-semibold">
             {initialEntity ? "Edit Entity" : "Add New Entity"}
           </h2>
           <button
             onClick={onClose}
             className="text-gray-500 hover:text-gray-700"
           >
-            <X className="h-5 w-5" />
+            <X className="h-4 w-4" />
           </button>
         </div>
 
         <form onSubmit={handleSubmit}>
-          <div className="space-y-4">
+          <div className="space-y-3">
             <div>
-              <label className="block text-sm font-medium mb-1">
+              <label className="block text-xs font-medium mb-1">
                 Entity ID
               </label>
               <input
                 type="text"
                 value={entityId}
                 onChange={(e) => setEntityId(e.target.value)}
-                className="w-full px-3 py-2 border rounded-md text-sm"
+                className="w-full px-2 py-1.5 border rounded-md text-sm"
                 placeholder="e.g., person-123 (auto-generated if empty)"
                 disabled={!!initialEntity}
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-1">
+              <label className="block text-xs font-medium mb-1">
                 Name <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
                 value={entityName}
                 onChange={(e) => setEntityName(e.target.value)}
-                className="w-full px-3 py-2 border rounded-md text-sm"
+                className="w-full px-2 py-1.5 border rounded-md text-sm"
                 placeholder="e.g., John Doe"
                 required
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-1">
+              <label className="block text-xs font-medium mb-1">
                 Type <span className="text-red-500">*</span>
               </label>
               <select
                 value={entityType}
                 onChange={(e) => setEntityType(e.target.value)}
-                className="w-full px-3 py-2 border rounded-md text-sm"
+                className="w-full px-2 py-1.5 border rounded-md text-sm"
                 required
               >
                 <option value="concept">Concept</option>
@@ -162,28 +163,28 @@ export const EntityForm: React.FC<EntityFormProps> = ({
             </div>
 
             <div>
-              <div className="flex justify-between items-center mb-2">
-                <label className="block text-sm font-medium">Properties</label>
+              <div className="flex justify-between items-center mb-1">
+                <label className="block text-xs font-medium">Properties</label>
                 <button
                   type="button"
                   onClick={handleAddProperty}
-                  className="text-blue-600 hover:text-blue-800 text-sm flex items-center"
+                  className="text-blue-600 hover:text-blue-800 text-xs flex items-center"
                 >
                   <Plus className="h-3 w-3 mr-1" />
                   Add Property
                 </button>
               </div>
 
-              <div className="space-y-2">
+              <div className="space-y-1">
                 {properties.map((prop, index) => (
-                  <div key={index} className="flex gap-2">
+                  <div key={index} className="flex gap-1">
                     <input
                       type="text"
                       value={prop.key}
                       onChange={(e) =>
                         handlePropertyChange(index, "key", e.target.value)
                       }
-                      className="w-1/3 px-3 py-2 border rounded-md text-sm"
+                      className="w-1/3 px-2 py-1 border rounded-md text-xs"
                       placeholder="Key"
                     />
                     <input
@@ -192,7 +193,7 @@ export const EntityForm: React.FC<EntityFormProps> = ({
                       onChange={(e) =>
                         handlePropertyChange(index, "value", e.target.value)
                       }
-                      className="flex-1 px-3 py-2 border rounded-md text-sm"
+                      className="flex-1 px-2 py-1 border rounded-md text-xs"
                       placeholder="Value"
                     />
                     <button
@@ -200,27 +201,27 @@ export const EntityForm: React.FC<EntityFormProps> = ({
                       onClick={() => handleRemoveProperty(index)}
                       className="text-gray-500 hover:text-red-500"
                     >
-                      <X className="h-5 w-5" />
+                      <X className="h-4 w-4" />
                     </button>
                   </div>
                 ))}
               </div>
             </div>
 
-            <div className="flex justify-end space-x-2 pt-4">
+            <div className="flex justify-end space-x-2 pt-3">
               <button
                 type="button"
                 onClick={onClose}
-                className="px-4 py-2 border text-gray-700 rounded-md hover:bg-gray-50 text-sm font-medium"
+                className="px-3 py-1.5 border text-gray-700 rounded-md hover:bg-gray-50 text-xs font-medium"
               >
                 Cancel
               </button>
               <button
                 type="submit"
-                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm font-medium flex items-center"
+                className="px-3 py-1.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-xs font-medium flex items-center"
                 disabled={!entityName}
               >
-                <Save className="h-4 w-4 mr-1" />
+                <Save className="h-3 w-3 mr-1" />
                 Save Entity
               </button>
             </div>

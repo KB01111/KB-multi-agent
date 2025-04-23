@@ -1,23 +1,24 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useSettings } from "@/providers/SettingsProvider";
-import { 
-  Key, 
-  Save, 
-  Moon, 
-  Sun, 
-  Bug, 
+
+import {
+  Key,
+  Save,
+  Moon,
+  Sun,
+  Bug,
   AlertCircle,
   Eye,
   EyeOff,
   ArrowLeft
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Separator } from "@/components/ui/separator";
-import { Checkbox } from "@/components/ui/checkbox";
 import Link from "next/link";
+
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
+import { useSettings } from "@/providers/SettingsProvider";
 
 export default function SettingsPage() {
   const { settings, updateSettings, isLoaded } = useSettings();
@@ -62,7 +63,7 @@ export default function SettingsPage() {
   const saveSettings = () => {
     setIsSaving(true);
     updateSettings(localSettings);
-    
+
     // Show success message
     setSaveMessage("Settings saved successfully!");
     setTimeout(() => {
@@ -113,7 +114,7 @@ export default function SettingsPage() {
               <div className="space-y-2">
                 <label className="text-sm font-medium flex items-center justify-between">
                   <span>OpenAI API Key</span>
-                  <button 
+                  <button
                     onClick={() => setShowOpenAIKey(!showOpenAIKey)}
                     className="text-muted-foreground hover:text-foreground"
                   >
@@ -134,7 +135,7 @@ export default function SettingsPage() {
               <div className="space-y-2">
                 <label className="text-sm font-medium flex items-center justify-between">
                   <span>Langsmith API Key</span>
-                  <button 
+                  <button
                     onClick={() => setShowLangsmithKey(!showLangsmithKey)}
                     className="text-muted-foreground hover:text-foreground"
                   >
@@ -155,7 +156,7 @@ export default function SettingsPage() {
               <div className="space-y-2">
                 <label className="text-sm font-medium flex items-center justify-between">
                   <span>Copilot Cloud API Key</span>
-                  <button 
+                  <button
                     onClick={() => setShowCopilotKey(!showCopilotKey)}
                     className="text-muted-foreground hover:text-foreground"
                   >
@@ -176,7 +177,7 @@ export default function SettingsPage() {
               <div className="space-y-2">
                 <label className="text-sm font-medium flex items-center justify-between">
                   <span>Graphiti API Key</span>
-                  <button 
+                  <button
                     onClick={() => setShowGraphitiKey(!showGraphitiKey)}
                     className="text-muted-foreground hover:text-foreground"
                   >
@@ -209,10 +210,10 @@ export default function SettingsPage() {
 
             <div className="space-y-4">
               <div className="flex items-center space-x-2">
-                <Checkbox 
+                <Checkbox
                   id="dark-mode"
                   checked={localSettings.featureFlags.enableDarkMode}
-                  onCheckedChange={(checked) => 
+                  onCheckedChange={(checked) =>
                     updateFeatureFlag('enableDarkMode', checked === true)
                   }
                 />
@@ -226,10 +227,10 @@ export default function SettingsPage() {
               </div>
 
               <div className="flex items-center space-x-2">
-                <Checkbox 
+                <Checkbox
                   id="debug-mode"
                   checked={localSettings.featureFlags.enableDebugMode}
-                  onCheckedChange={(checked) => 
+                  onCheckedChange={(checked) =>
                     updateFeatureFlag('enableDebugMode', checked === true)
                   }
                 />
@@ -257,8 +258,8 @@ export default function SettingsPage() {
       </div>
 
       <div className="mt-8 flex justify-end">
-        <Button 
-          onClick={saveSettings} 
+        <Button
+          onClick={saveSettings}
           disabled={isSaving}
           className="px-6"
         >

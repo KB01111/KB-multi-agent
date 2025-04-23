@@ -1,9 +1,11 @@
 "use client";
 
 import React, { createContext, useContext, useEffect, useState } from "react";
+
 import { useLocalStorage } from "@/hooks/use-local-storage";
+import type { 
+  AppSettings} from "@/lib/settings-types";
 import { 
-  AppSettings, 
   DEFAULT_SETTINGS, 
   SETTINGS_STORAGE_KEY 
 } from "@/lib/settings-types";
