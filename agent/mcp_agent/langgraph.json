@@ -1,0 +1,9 @@
+{
+  "graphs": [
+    {
+      "id": "mcp-agent",
+      "path": "./agent.py",
+      "variable": "graph"
+    }
+  ]
+}
