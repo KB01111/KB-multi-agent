@@ -1,10 +1,13 @@
 "use client";
 import { createContext, useContext, useRef } from "react";
+
 import { useCoAgent } from "@copilotkit/react-core";
+
 import { useLocalStorage } from "@/hooks/use-local-storage";
 import { AvailableAgents } from "@/lib/available-agents";
 import type { ServerConfig } from "@/lib/mcp-config-types";
 import { MCP_STORAGE_KEY } from "@/lib/mcp-config-types";
+
 import type { KnowledgeAgentState } from "./agents/knowledge-agent";
 import type { MCPAgentState } from "./agents/mcp-agent";
 import type { ResearchAgentState } from "./agents/researcher";

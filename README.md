@@ -21,7 +21,7 @@ Check out these awesome agents (they live in separate repositories). You can run
 
 Additionally, this project now includes built-in agents:
 - **MCP Agent**: A general-purpose agent capable of handling various tasks through configurable MCP servers.
-- **Knowledge Agent**: A specialized agent for visualizing, querying, and managing knowledge graphs.
+- **Knowledge Agent**: A specialized agent for visualizing, querying, and managing knowledge graphs with PostgreSQL database integration.
 
 ## Copilot Cloud is required to run this project
 
@@ -77,29 +77,91 @@ We've created convenient scripts to start both the frontend and backend with a s
 
 **Windows (PowerShell - Recommended):**
 ```
-./start-all.ps1
+./start-app.ps1
 ```
 
-**Windows (Batch):**
-```
-start-all.bat
-```
-
-These scripts will:
+This script will:
 - Check for required dependencies
 - Start the backend with a health endpoint
 - Start the frontend
 - Verify the integration between frontend and backend
 
-To stop all services:
+All other scripts are organized in the `scripts` directory for better maintainability. You can access them directly:
+
 ```
-./stop-all.ps1  # or stop-all.bat
+./scripts/stop-app.ps1  # Stop all services
+./scripts/check-app-health.ps1  # Check the health of all services
 ```
 
-To check the health of all services:
+Or use the batch files if you prefer:
+
 ```
-./check-health.ps1  # or check-health.bat
+.\scripts\stop-app.bat  # Stop all services
+.\scripts\check-app-health.bat  # Check the health of all services
 ```
+
+### Database Integration
+
+The Knowledge Agent now includes database integration for persistent storage of knowledge graph data. You can choose between PostgreSQL or Supabase as your database backend.
+
+#### Option 1: PostgreSQL (Default)
+
+To set up PostgreSQL:
+
+1. Install the required dependencies:
+```
+./scripts/install-db-deps.ps1  # or ./scripts/install-db-deps.bat
+```
+
+2. Initialize the database:
+```
+./scripts/init-database.ps1  # or ./scripts/init-database.bat
+```
+
+The PostgreSQL connection is configured in the `agent/.env` file with the following variables:
+```
+DATABASE_BACKEND=postgres
+DATABASE_URL='prisma+postgres://accelerate.prisma-data.net/?api_key=YOUR_API_KEY'
+DIRECT_URL='postgres://username:password@hostname/database?sslmode=require'
+```
+
+#### Option 2: Supabase
+
+To set up Supabase:
+
+1. Create a Supabase project at [supabase.com](https://supabase.com)
+
+2. Install the required dependencies:
+```
+./scripts/install-supabase-deps.ps1  # or ./scripts/install-supabase-deps.bat
+```
+
+3. Configure your environment variables in both `frontend/.env` and `agent/.env`:
+
+   Frontend `.env`:
+   ```
+   NEXT_PUBLIC_SUPABASE_URL=https://your-project-id.supabase.co
+   NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+   ```
+
+   Backend `.env`:
+   ```
+   DATABASE_BACKEND=supabase
+   SUPABASE_URL=https://your-project-id.supabase.co
+   SUPABASE_SERVICE_KEY=your-service-key
+   ```
+
+4. Initialize Supabase tables and default user:
+```
+./scripts/init-supabase.ps1  # or ./scripts/init-supabase.bat
+```
+
+5. Run the SQL script in `scripts/update-supabase-tables.sql` in the Supabase SQL Editor to ensure all tables are properly configured.
+
+The initialization script will:
+- Check if all required tables exist with the correct structure
+- Create a default user for testing
+- Provide instructions for any missing tables or columns
 
 For more detailed instructions, see [STARTUP.md](./STARTUP.md).
 

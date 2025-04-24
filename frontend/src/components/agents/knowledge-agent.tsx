@@ -173,7 +173,7 @@ export const KnowledgeAgent: FC = () => {
             </p>
           </div>
         </div>
-        <div className="animate-fade-in-up h-full">
+        <div className="animate-fade-in-up h-full overflow-y-auto">
           <KnowledgeGraph />
         </div>
       </div>

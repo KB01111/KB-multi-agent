@@ -17,13 +17,13 @@ You have two options for starting the application:
 
 ### Option 1: Using the Batch Script (Windows)
 
-1. Double-click the `start-all.bat` file
+1. Double-click the `start-app.bat` file
 2. Two command windows will open - one for the backend and one for the frontend
 3. Wait for both services to initialize
 
 ### Option 2: Using the PowerShell Script (Recommended)
 
-1. Right-click on `start-all.ps1` and select "Run with PowerShell"
+1. Right-click on `start-app.ps1` and select "Run with PowerShell"
 2. The script will:
    - Check if all prerequisites are installed
    - Start the backend and verify it's running
@@ -46,12 +46,12 @@ You have two options for stopping the application:
 
 ### Option 1: Using the Batch Script (Windows)
 
-1. Double-click the `stop-all.bat` file
+1. Double-click the `stop-app.bat` file
 2. The script will terminate all related processes
 
 ### Option 2: Using the PowerShell Script (Recommended)
 
-1. Right-click on `stop-all.ps1` and select "Run with PowerShell"
+1. Right-click on `stop-app.ps1` and select "Run with PowerShell"
 2. The script will:
    - Identify and stop all frontend processes
    - Identify and stop all backend processes
@@ -75,6 +75,7 @@ If you encounter issues:
    - Verify that both services are running
    - Check that the frontend's `.env` file contains `NEXT_PUBLIC_BACKEND_URL=http://localhost:8123`
    - Try accessing the backend health endpoint directly: [http://localhost:8123/health](http://localhost:8123/health)
+   - Run the health check script: `scripts/check-app-health.ps1` or `scripts/check-app-health.bat`
 
 ## Manual Startup (If Scripts Fail)
 
@@ -95,3 +96,17 @@ cd frontend
 pnpm install
 pnpm run dev
 ```
+
+## Script Organization
+
+All utility scripts are now organized in the `scripts` directory for better maintainability:
+
+- **Start Scripts**: `scripts/start-app.ps1` and `scripts/start-app.bat`
+- **Stop Scripts**: `scripts/stop-app.ps1` and `scripts/stop-app.bat`
+- **Health Check Scripts**: `scripts/check-app-health.ps1` and `scripts/check-app-health.bat`
+
+For convenience, shortcut scripts are provided in the root directory:
+
+- `start-app.ps1` and `start-app.bat`
+- `stop-app.ps1` and `stop-app.bat`
+- `check-health.ps1` and `check-health.bat`

@@ -8,6 +8,7 @@ import os
 import sys
 import platform
 import logging
+import datetime
 import uvicorn
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -36,7 +37,27 @@ app.add_middleware(
 @app.get("/health")
 async def health_check():
     """Health check endpoint."""
-    return {"status": "ok", "message": "MCP Agent backend is running (fallback health server)"}
+    import platform
+    import sys
+
+    return {
+        "status": "ok",
+        "message": "MCP Agent backend is running (fallback health server)",
+        "timestamp": datetime.datetime.now().isoformat(),
+        "version": "0.1.0",
+        "mode": "fallback",
+        "services": {
+            "langgraph": {
+                "available": False,
+                "status": "unavailable"
+            }
+        },
+        "system": {
+            "python_version": sys.version,
+            "platform": platform.platform(),
+            "processor": platform.processor()
+        }
+    }
 
 @app.get("/")
 async def root():

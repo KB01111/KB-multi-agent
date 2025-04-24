@@ -1,12 +1,19 @@
 "use client";
 
-import type { FC} from "react";
+import type { FC } from "react";
 import React, { useEffect, useState } from "react";
 
 import { useCoAgent } from "@copilotkit/react-core";
-import { Search, Plus, RotateCw, Info, Filter } from "lucide-react";
+import { Search, Plus, RotateCw, Info, Filter, Network, Loader2 } from "lucide-react";
 
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { AvailableAgents } from "@/lib/available-agents";
+import { cn } from "@/lib/utils";
 
 import { EntityForm } from "./entity-form";
 
@@ -31,6 +38,27 @@ type GraphData = {
   links: GraphLink[];
 };
 
+interface KnowledgeEntity {
+  id: string;
+  name: string;
+  type: string;
+  properties: Record<string, unknown>;
+}
+
+interface KnowledgeRelation {
+  source_id: string;
+  target_id: string;
+  type: string;
+  properties?: Record<string, unknown>;
+}
+
+interface KnowledgeAgentState {
+  entities: KnowledgeEntity[];
+  relations: KnowledgeRelation[];
+  isLoading?: boolean;
+  error?: string;
+}
+
 export const KnowledgeGraph: FC = () => {
   const [graphData, setGraphData] = useState<GraphData>({ nodes: [], links: [] });
   const [searchQuery, setSearchQuery] = useState("");
@@ -38,13 +66,14 @@ export const KnowledgeGraph: FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [showEntityForm, setShowEntityForm] = useState(false);
   const [entityToEdit, setEntityToEdit] = useState<GraphNode | null>(null);
-  // No longer need graphRef since we're not using ForceGraph2D
-  // const graphRef = useRef<any>(null);
+  const [activeTab, setActiveTab] = useState("graph");
+  const [filterType, setFilterType] = useState<string | null>(null);
+  const [availableTypes, setAvailableTypes] = useState<string[]>([]);
 
-  // Get MCP agent state to access knowledge graph data
-  useCoAgent({
-    name: AvailableAgents.MCP_AGENT,
-  });
+  // Get Knowledge agent state to access knowledge graph data
+  const { state: knowledgeAgentState = { entities: [], relations: [] } } = useCoAgent({
+    name: AvailableAgents.KNOWLEDGE_AGENT,
+  }) as { state: KnowledgeAgentState };
 
   // Function to handle node click
   const handleNodeClick = (node: GraphNode) => {
@@ -105,6 +134,8 @@ export const KnowledgeGraph: FC = () => {
     });
   };
 
+
+
   // Helper function to get color based on entity type
   const getColorForType = (type: string): string => {
     const typeColors: Record<string, string> = {
@@ -116,54 +147,103 @@ export const KnowledgeGraph: FC = () => {
       custom: "#607D8B",
     };
 
-    return typeColors[type] || "#607D8B";
+    return typeColors[type.toLowerCase()] || "#607D8B";
   };
 
   // Function to search the knowledge graph
-  const searchGraph = () => {
+  const searchGraph = async () => {
     if (!searchQuery.trim()) return;
 
     setIsLoading(true);
 
-    // This is a placeholder - in a real implementation, you would:
-    // 1. Call the MCP agent with a search query
-    // 2. Process the results and update the graph
+    try {
+      // In a real implementation, this would trigger the knowledge agent to perform a search
+      // For now, we'll just filter the existing data based on the search query
+      const filteredNodes = knowledgeAgentState.entities
+        .filter(entity =>
+          entity.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          entity.type?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          Object.values(entity.properties || {}).some(value =>
+            String(value).toLowerCase().includes(searchQuery.toLowerCase())
+          )
+        )
+        .map(entity => ({
+          id: entity.id,
+          name: entity.name || entity.id,
+          type: entity.type,
+          val: 5, // Default size
+          color: getColorForType(entity.type),
+          properties: entity.properties || {}
+        }));
 
-    // Simulate loading
-    setTimeout(() => {
-      // Example data - in a real implementation, this would come from the MCP agent
-      const newData: GraphData = {
-        nodes: [
-          { id: "1", name: "Concept A", type: "concept", val: 5, color: "#4CAF50", properties: {} },
-          { id: "2", name: "Concept B", type: "concept", val: 3, color: "#4CAF50", properties: {} },
-          { id: "3", name: "Entity X", type: "entity", val: 4, color: "#2196F3", properties: {} },
-          { id: "4", name: "Entity Y", type: "entity", val: 2, color: "#2196F3", properties: {} },
-          { id: "5", name: searchQuery, type: "search", val: 6, color: "#FFC107", properties: {} },
-        ],
-        links: [
-          { source: "5", target: "1", type: "related_to" },
-          { source: "5", target: "3", type: "related_to" },
-          { source: "1", target: "2", type: "similar_to" },
-          { source: "3", target: "4", type: "part_of" },
-          { source: "2", target: "4", type: "related_to" },
-        ],
-      };
+      // Get all relations that connect the filtered nodes
+      const filteredLinks = knowledgeAgentState.relations
+        .filter(relation =>
+          filteredNodes.some(node => node.id === relation.source_id) &&
+          filteredNodes.some(node => node.id === relation.target_id)
+        )
+        .map(relation => ({
+          source: relation.source_id,
+          target: relation.target_id,
+          type: relation.type,
+          properties: relation.properties || {}
+        }));
 
-      setGraphData(newData);
+      setGraphData({
+        nodes: filteredNodes,
+        links: filteredLinks
+      });
+    } catch (error) {
+      console.error('Error searching knowledge graph:', error);
+    } finally {
       setIsLoading(false);
-    }, 1000);
+    }
   };
 
   // Function to reset the graph view (removed duplicate)
 
-  // Initialize with empty graph
+  // Initialize with data from knowledge agent state
   useEffect(() => {
-    // In a real implementation, you might load an initial graph state here
-    setGraphData({
-      nodes: [],
-      links: [],
-    });
-  }, []);
+    if (knowledgeAgentState?.entities?.length > 0 || knowledgeAgentState?.relations?.length > 0) {
+      // Extract all unique entity types
+      const types = Array.from(new Set(knowledgeAgentState.entities.map(entity => entity.type)));
+      setAvailableTypes(types);
+
+      // Apply type filter if set
+      let filteredEntities = knowledgeAgentState.entities;
+      if (filterType) {
+        filteredEntities = knowledgeAgentState.entities.filter(entity => entity.type === filterType);
+      }
+
+      // Convert entities to graph nodes
+      const nodes = filteredEntities.map(entity => ({
+        id: entity.id,
+        name: entity.name || entity.id,
+        type: entity.type,
+        val: 5, // Default size
+        color: getColorForType(entity.type),
+        properties: entity.properties || {}
+      }));
+
+      // Convert relations to graph links - only include relations where both nodes are in our filtered set
+      const nodeIds = new Set(nodes.map(node => node.id));
+      const links = knowledgeAgentState.relations
+        .filter(relation =>
+          nodeIds.has(relation.source_id) && nodeIds.has(relation.target_id)
+        )
+        .map(relation => ({
+          source: relation.source_id,
+          target: relation.target_id,
+          type: relation.type,
+        properties: relation.properties || {}
+      }));
+
+      setGraphData({
+        nodes,
+        links
+      });
+    }
+  }, [knowledgeAgentState.entities, knowledgeAgentState.relations, filterType]);
 
   // Function to reset view (simplified for card-based view)
   const resetView = () => {
@@ -206,98 +286,152 @@ export const KnowledgeGraph: FC = () => {
         </div>
       </div>
 
-      {/* Search and add controls */}
-      <div className="flex mb-1 gap-1">
+      {/* Search, filter, and add controls */}
+      <div className="flex mb-2 gap-1">
         <div className="relative flex-grow">
-          <input
+          <Input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search knowledge graph..."
-            className="w-full px-1.5 py-0.5 text-xs border rounded-md pr-6"
+            className="h-8 text-xs pr-8"
             onKeyDown={(e) => e.key === 'Enter' && searchGraph()}
           />
-          <button
+          <Button
+            variant="ghost"
+            size="icon"
+            className="absolute right-0 top-0 h-8 w-8"
             onClick={searchGraph}
-            className="absolute right-1 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
           >
-            <Search className="h-3 w-3" />
-          </button>
+            <Search className="h-3.5 w-3.5" />
+          </Button>
         </div>
-        <button
+
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-8 w-8"
+                onClick={() => setFilterType(null)}
+                disabled={!filterType}
+              >
+                <Filter className={cn("h-3.5 w-3.5", filterType ? "text-primary" : "text-muted-foreground")} />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom">
+              {filterType ? "Clear filter" : "No filter active"}
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+
+        <Button
+          variant="default"
+          size="sm"
+          className="h-8 gap-1"
           onClick={addEntity}
-          className="px-1.5 py-0.5 bg-gray-800 text-white text-xs rounded hover:bg-gray-700 flex items-center whitespace-nowrap"
         >
-          <Plus className="h-2.5 w-2.5 mr-0.5" />
+          <Plus className="h-3.5 w-3.5" />
           Add
-        </button>
+        </Button>
       </div>
 
-      {/* Filters and advanced controls */}
-      <div className="mb-1 flex items-center gap-0.5 flex-wrap">
-        <div className="flex items-center gap-0.5 text-[10px] text-gray-500">
-          <Filter className="h-2.5 w-2.5" />
-          <span>Filters:</span>
+      {/* Type filters */}
+      <div className="mb-2 flex items-center gap-1 flex-wrap">
+        <div className="flex items-center gap-1 text-xs text-muted-foreground">
+          <Filter className="h-3 w-3" />
+          <span>Filter by type:</span>
         </div>
-        <div className="flex gap-0.5 flex-wrap">
-          <button className="px-1.5 py-0 text-[10px] rounded-full bg-green-100 text-green-800 hover:bg-green-200 transition-colors">
-            Concepts
-          </button>
-          <button className="px-1.5 py-0 text-[10px] rounded-full bg-blue-100 text-blue-800 hover:bg-blue-200 transition-colors">
-            Entities
-          </button>
-          <button className="px-1.5 py-0 text-[10px] rounded-full bg-purple-100 text-purple-800 hover:bg-purple-200 transition-colors">
-            Relations
-          </button>
-        </div>
-      </div>
-
-      {/* Graph visualization */}
-      <div className="flex-grow border rounded-md overflow-hidden bg-gray-50 relative">
-        {isLoading && (
-          <div className="absolute inset-0 flex items-center justify-center bg-white bg-opacity-70 z-10">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-gray-900"></div>
-          </div>
-        )}
-
-        {graphData.nodes.length === 0 && !isLoading ? (
-          <div className="h-full flex items-center justify-center text-gray-500">
-            <div className="text-center">
-              <p>No data to display</p>
-              <p className="text-sm">Search for concepts or entities to visualize the knowledge graph</p>
-            </div>
-          </div>
-        ) : (
-          <div className="flex flex-col items-center justify-center">
-            <div className="grid grid-cols-2 gap-2 p-1 w-full">
-              {graphData.nodes.map((node) => (
-                <div
-                  key={node.id}
-                  className="p-1.5 border rounded-md shadow-sm hover:shadow-md transition-shadow cursor-pointer bg-white text-xs"
-                  onClick={() => handleNodeClick(node)}
+        <div className="flex gap-1 flex-wrap">
+          {availableTypes.length === 0 ? (
+            <span className="text-xs text-muted-foreground">No types available</span>
+          ) : (
+            <>
+              {availableTypes.map((type) => (
+                <Badge
+                  key={type}
+                  variant={filterType === type ? "default" : "outline"}
+                  className={cn(
+                    "cursor-pointer hover:bg-muted/80 transition-colors",
+                    filterType === type && "bg-primary text-primary-foreground"
+                  )}
+                  onClick={() => setFilterType(filterType === type ? null : type)}
                 >
-                  <div className="flex items-center gap-1">
-                    <div
-                      className="w-2 h-2 rounded-full"
-                      style={{ backgroundColor: node.color }}
-                    />
-                    <h3 className="font-medium text-xs">{node.name}</h3>
-                  </div>
-                  <div className="mt-1">
-                    <span className="text-xs px-1.5 py-0.5 bg-gray-100 rounded-full">{node.type}</span>
-                  </div>
-                  {node.properties && Object.keys(node.properties).length > 0 && (
-                    <div className="mt-0.5 text-[10px] text-gray-500">
-                      {Object.entries(node.properties)
-                        .slice(0, 1)
-                        .map(([key, value]) => (
-                          <div key={key} className="truncate">
-                            <span className="font-medium">{key}:</span> {String(value).substring(0, 15)}{String(value).length > 15 ? '...' : ''}
-                          </div>
+                  {type}
+                  <span className="ml-1 text-xs opacity-70">
+                    {knowledgeAgentState.entities.filter(e => e.type === type).length}
+                  </span>
+                </Badge>
+              ))}
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* Main content with tabs */}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-grow flex flex-col">
+        <TabsList className="mb-2">
+          <TabsTrigger value="graph" className="text-xs">
+            <Network className="h-3.5 w-3.5 mr-1" />
+            Graph View
+          </TabsTrigger>
+          <TabsTrigger value="list" className="text-xs">
+            <Filter className="h-3.5 w-3.5 mr-1" />
+            List View
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="graph" className="flex-grow relative border rounded-md overflow-hidden data-[state=active]:flex data-[state=active]:flex-col">
+          {isLoading && (
+            <div className="absolute inset-0 flex items-center justify-center bg-background/70 z-10">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+          )}
+
+          {graphData.nodes.length === 0 && !isLoading ? (
+            <div className="h-full flex items-center justify-center text-muted-foreground">
+              <div className="text-center p-4">
+                <Network className="h-12 w-12 mx-auto mb-2 text-muted-foreground/50" />
+                <p>No data to display</p>
+                <p className="text-sm">Search for concepts or entities to visualize the knowledge graph</p>
+              </div>
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center h-full">
+              <div className="grid grid-cols-2 gap-2 p-1 w-full">
+                {graphData.nodes.map((node) => (
+                  <div
+                    key={node.id}
+                    className={`p-2 border rounded-md shadow-sm hover:shadow-md transition-shadow cursor-pointer bg-white text-xs ${selectedNode?.id === node.id ? 'ring-2 ring-primary' : ''}`}
+                    onClick={() => handleNodeClick(node)}
+                  >
+                    <div className="flex items-center gap-1.5">
+                      <div
+                        className="w-3 h-3 rounded-full flex-shrink-0"
+                        style={{ backgroundColor: node.color }}
+                      />
+                      <h3 className="font-medium text-sm truncate">{node.name}</h3>
+                    </div>
+                    <div className="mt-1.5 flex items-center gap-1">
+                      <span className="text-xs px-1.5 py-0.5 bg-gray-100 rounded-full">{node.type}</span>
+                      <span className="text-[10px] text-gray-500">ID: {node.id.substring(0, 8)}</span>
+                    </div>
+                    {node.properties && Object.keys(node.properties).length > 0 && (
+                      <div className="mt-1.5 text-[11px] text-gray-600 border-t pt-1.5">
+                        {Object.entries(node.properties)
+                          .slice(0, 2)
+                          .map(([key, value]) => (
+                            <div key={key} className="truncate flex items-baseline gap-1">
+                              <span className="font-medium text-gray-700 min-w-[60px]">{key}:</span>
+                              <span className="truncate">{String(value).substring(0, 25)}{String(value).length > 25 ? '...' : ''}</span>
+                            </div>
                         ))}
-                      {Object.keys(node.properties).length > 1 && (
-                        <div className="text-[10px] text-blue-500">+{Object.keys(node.properties).length - 1} more</div>
-                      )}
+                        {Object.keys(node.properties).length > 2 && (
+                          <div className="text-[10px] text-blue-500 mt-0.5 cursor-pointer hover:underline" onClick={(e) => { e.stopPropagation(); alert(JSON.stringify(node.properties, null, 2)); }}>
+                            +{Object.keys(node.properties).length - 2} more properties
+                          </div>
+                        )}
                     </div>
                   )}
                 </div>
@@ -305,85 +439,190 @@ export const KnowledgeGraph: FC = () => {
             </div>
 
             {graphData.nodes.length > 0 && (
-              <div className="mt-2 p-1 border rounded-md w-full">
-                <h3 className="font-medium text-xs mb-0.5">Relationships</h3>
-                <div className="space-y-0.5">
-                  {graphData.links.map((link, index) => (
-                    <div key={index} className="p-0.5 bg-gray-50 rounded flex items-center justify-between text-xs">
-                      <div className="truncate max-w-[30%]">
-                        {graphData.nodes.find(n => n.id === link.source)?.name || link.source}
-                      </div>
-                      <div className="px-1.5 py-0.5 bg-purple-100 text-purple-800 rounded-full text-xs">
-                        {link.type}
-                      </div>
-                      <div className="truncate max-w-[30%]">
-                        {graphData.nodes.find(n => n.id === link.target)?.name || link.target}
-                      </div>
-                    </div>
-                  ))}
-                  {graphData.links.length === 0 && (
-                    <div className="text-xs text-gray-500 text-center py-1">
-                      No relationships found
-                    </div>
+              <div className="mt-3 p-2 border rounded-md w-full bg-white shadow-sm">
+                <h3 className="font-medium text-sm mb-2 flex items-center gap-1.5">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-purple-500">
+                    <path d="M9 17H7A5 5 0 0 1 7 7h2"/>
+                    <path d="M15 7h2a5 5 0 1 1 0 10h-2"/>
+                    <line x1="8" y1="12" x2="16" y2="12"/>
+                  </svg>
+                  Relationships ({graphData.links.length})
+                </h3>
+                <div className="space-y-1.5 max-h-[200px] overflow-y-auto pr-1">
+                  {graphData.links.length === 0 ? (
+                    <div className="text-center text-gray-500 text-xs py-2">No relationships found</div>
+                  ) : (
+                    graphData.links.map((link, index) => {
+                      const sourceNode = graphData.nodes.find(n => n.id === link.source);
+                      const targetNode = graphData.nodes.find(n => n.id === link.target);
+                      return (
+                        <div key={index} className="p-1.5 bg-gray-50 hover:bg-gray-100 rounded-md flex items-center justify-between text-xs transition-colors">
+                          <div
+                            className="truncate max-w-[30%] flex items-center gap-1 cursor-pointer hover:text-blue-600"
+                            onClick={() => handleNodeClick(sourceNode!)}
+                            title={sourceNode?.name || String(link.source)}
+                          >
+                            <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: sourceNode?.color || '#999' }} />
+                            {sourceNode?.name || String(link.source).substring(0, 10)}
+                          </div>
+                          <div className="px-2 py-0.5 bg-purple-100 text-purple-800 rounded-full text-xs">
+                            {link.type}
+                          </div>
+                          <div
+                            className="truncate max-w-[30%] flex items-center gap-1 cursor-pointer hover:text-blue-600"
+                            onClick={() => handleNodeClick(targetNode!)}
+                            title={targetNode?.name || String(link.target)}
+                          >
+                            <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: targetNode?.color || '#999' }} />
+                            {targetNode?.name || String(link.target).substring(0, 10)}
+                          </div>
+                        </div>
+                      );
+                    })
                   )}
                 </div>
               </div>
             )}
-          </div>
-        )}
-      </div>
+            </div>
+          )}
+        </TabsContent>
+
+        <TabsContent value="list" className="flex-grow relative border rounded-md overflow-hidden data-[state=active]:flex data-[state=active]:flex-col">
+          {isLoading && (
+            <div className="absolute inset-0 flex items-center justify-center bg-background/70 z-10">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+          )}
+
+          {graphData.nodes.length === 0 && !isLoading ? (
+            <div className="h-full flex items-center justify-center text-muted-foreground">
+              <div className="text-center p-4">
+                <Filter className="h-12 w-12 mx-auto mb-2 text-muted-foreground/50" />
+                <p>No entities to display</p>
+                <p className="text-sm">Add entities or search to populate the knowledge graph</p>
+              </div>
+            </div>
+          ) : (
+            <div className="p-2 space-y-2 overflow-y-auto h-full">
+              {graphData.nodes.map((node) => (
+                <Card
+                  key={node.id}
+                  className={cn(
+                    "cursor-pointer hover:shadow-md transition-all",
+                    selectedNode?.id === node.id && "ring-1 ring-primary"
+                  )}
+                  onClick={() => handleNodeClick(node)}
+                >
+                  <CardHeader className="p-3 pb-2">
+                    <div className="flex justify-between items-center">
+                      <CardTitle className="text-sm flex items-center gap-2">
+                        <div
+                          className="w-3 h-3 rounded-full"
+                          style={{ backgroundColor: node.color || getColorForType(node.type) }}
+                        />
+                        {node.name}
+                      </CardTitle>
+                      <Badge variant="outline" className="text-xs">{node.type}</Badge>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="p-3 pt-0 text-xs">
+                    {Object.keys(node.properties).length > 0 ? (
+                      <div className="space-y-1">
+                        {Object.entries(node.properties).slice(0, 3).map(([key, value]) => (
+                          <div key={key} className="flex">
+                            <span className="font-medium min-w-[80px]">{key}:</span>
+                            <span className="truncate">{String(value).substring(0, 50)}</span>
+                          </div>
+                        ))}
+                        {Object.keys(node.properties).length > 3 && (
+                          <div className="text-xs text-muted-foreground">
+                            +{Object.keys(node.properties).length - 3} more properties
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="text-muted-foreground">No properties</div>
+                    )}
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </TabsContent>
+      </Tabs>
 
       {/* Selected node details */}
       {selectedNode && (
-        <div className="mt-2 p-2 border rounded-md bg-white shadow-sm text-xs">
-          <div className="flex justify-between items-start">
-            <h3 className="font-semibold text-xs">{selectedNode.name}</h3>
-            <span className="px-1.5 py-0.5 text-[10px] rounded-full"
-              style={{ backgroundColor: `${selectedNode.color}25`, color: selectedNode.color }}
-            >
-              {selectedNode.type}
-            </span>
-          </div>
+        <Card className="mt-3">
+          <CardHeader className="p-3 pb-2">
+            <div className="flex justify-between items-center">
+              <CardTitle className="text-sm flex items-center gap-2">
+                <div
+                  className="w-3 h-3 rounded-full"
+                  style={{ backgroundColor: selectedNode.color || getColorForType(selectedNode.type) }}
+                />
+                {selectedNode.name}
+              </CardTitle>
+              <div className="flex items-center gap-2">
+                <Badge variant="outline" className="text-xs">{selectedNode.type}</Badge>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6"
+                  onClick={() => editEntity(selectedNode)}
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+            </div>
+            <CardDescription className="text-xs mt-1">ID: {selectedNode.id}</CardDescription>
+          </CardHeader>
 
-          <div className="mt-1">
-            <h4 className="text-[10px] font-medium text-gray-700 mb-0.5">Properties</h4>
-            <div className="bg-gray-50 p-1 rounded-md">
+          <CardContent className="p-3 pt-0">
+            <h4 className="text-xs font-medium mb-1">Properties</h4>
+            <div className="bg-muted/50 p-2 rounded-md">
               {selectedNode.properties && Object.entries(selectedNode.properties).length > 0 ? (
-                <div className="grid grid-cols-2 gap-y-0.5 gap-x-1">
+                <div className="grid grid-cols-2 gap-y-1 gap-x-2">
                   {Object.entries(selectedNode.properties).map(([key, value]) => (
                     <React.Fragment key={key}>
-                      <div className="text-[10px] text-gray-500 font-medium">{key}</div>
-                      <div className="text-[10px] truncate">{String(value)}</div>
+                      <div className="text-xs text-muted-foreground font-medium">{key}</div>
+                      <div className="text-xs truncate">{String(value)}</div>
                     </React.Fragment>
                   ))}
                 </div>
               ) : (
-                <p className="text-[10px] text-gray-500">No properties available</p>
+                <p className="text-xs text-muted-foreground">No properties available</p>
               )}
             </div>
-          </div>
+          </CardContent>
 
-          <div className="mt-1 flex justify-end gap-1">
-            <button
-              className="px-1.5 py-0.5 text-[10px] bg-blue-50 text-blue-600 rounded hover:bg-blue-100 transition-colors"
+          <CardContent className="p-3 pt-0 flex justify-end gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-7 text-xs"
               onClick={() => alert(`Find related to ${selectedNode.name}`)}
             >
               Find Related
-            </button>
-            <button
-              className="px-1.5 py-0.5 text-[10px] bg-green-50 text-green-600 rounded hover:bg-green-100 transition-colors"
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-7 text-xs"
               onClick={() => editEntity(selectedNode)}
             >
               Edit
-            </button>
-            <button
-              className="px-1.5 py-0.5 text-[10px] bg-gray-100 text-gray-600 rounded hover:bg-gray-200 transition-colors"
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 text-xs"
               onClick={() => setSelectedNode(null)}
             >
               Close
-            </button>
-          </div>
-        </div>
+            </Button>
+          </CardContent>
+        </Card>
       )}
     </div>
   );

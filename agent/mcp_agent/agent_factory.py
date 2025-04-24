@@ -39,8 +39,11 @@ class AgentFactory:
             "LLM_BACKEND": os.getenv("LLM_BACKEND", "litellm"),
             "A2A_BACKEND": os.getenv("A2A_BACKEND", "inmemory"),
             "KNOWLEDGE_BACKEND": os.getenv("KNOWLEDGE_BACKEND", "graphiti"),
+            "DATABASE_BACKEND": os.getenv("DATABASE_BACKEND", "postgres"),
             "LOGGING_ENABLED": os.getenv("LOGGING_ENABLED", "true"),
             "LOGFIRE_PROJECT": os.getenv("LOGFIRE_PROJECT", "kb-multi-agent"),
+            "SUPABASE_URL": os.getenv("SUPABASE_URL", ""),
+            "SUPABASE_SERVICE_KEY": os.getenv("SUPABASE_SERVICE_KEY", ""),
         }
 
     def _initialize_logger(self) -> LogfireLogger:

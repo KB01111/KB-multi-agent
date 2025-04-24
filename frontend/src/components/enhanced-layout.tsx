@@ -2,8 +2,7 @@
 
 import React, { useState } from "react";
 
-import { ThemeProvider } from "next-themes";
-
+import { ThemeProvider } from "@/components/theme-provider";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { cn } from "@/lib/utils";
 
@@ -17,7 +16,7 @@ export function EnhancedLayout({ children }: { children: React.ReactNode }) {
   const [showSettingsModal, setShowSettingsModal] = useState(false);
 
   return (
-    <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
+    <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
       <SidebarProvider defaultOpen={true}>
         <div className="flex h-screen w-screen overflow-hidden">
           <EnhancedSidebar

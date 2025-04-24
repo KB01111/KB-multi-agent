@@ -63,7 +63,7 @@ function Test-UrlAccessible {
 }
 
 # Set script directory as base path
-$scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+$scriptDir = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path)
 
 # Display header
 Write-ColorOutput "Multi-Agent Canvas Health Check" "Green"
@@ -164,12 +164,10 @@ if ($backendHealthResult.Success -and $frontendResult.Success) {
     Write-ColorOutput "  API Documentation: http://localhost:8123/docs" "Cyan"
 }
 else {
-    Write-ColorOutput "✗ Multi-Agent Canvas is not running correctly" "Red"
+    Write-ColorOutput "✗ Multi-Agent Canvas is not running correctly." "Red"
     Write-Output ""
-    Write-ColorOutput "Please check the error messages above and try restarting the application." "Yellow"
-    Write-ColorOutput "You can use start-all.ps1 to restart both services." "Yellow"
+    Write-ColorOutput "Please check the error messages above and try starting the application again." "Yellow"
+    Write-ColorOutput "You can use the start-app.ps1 script to start the application." "Yellow"
 }
 
 Write-Output ""
-Write-Output "Press Enter to exit."
-Read-Host

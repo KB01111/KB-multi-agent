@@ -17,7 +17,26 @@ type CodeProps = React.DetailedHTMLProps<React.HTMLAttributes<HTMLElement>, HTML
 import { useLocalStorage } from "@/hooks/use-local-storage";
 import { AvailableAgents } from "@/lib/available-agents";
 import { MCP_STORAGE_KEY } from "@/lib/mcp-config-types";
-import type { ServerConfig} from "@/lib/mcp-config-types";
+import type { ServerConfig, SSEConfig } from "@/lib/mcp-config-types";
+
+// Define types for backend health data
+type ServiceInfo = {
+  available: boolean;
+  status: string;
+};
+
+type BackendHealth = {
+  status: string;
+  message: string;
+  timestamp: string;
+  version: string;
+  services: Record<string, ServiceInfo>;
+  system?: {
+    python_version: string;
+    platform: string;
+    processor: string;
+  };
+};
 
 
 export type MCPAgentState = {
@@ -38,6 +57,7 @@ export const MCPAgent: FC = () => {
   >([]);
 
   const [backendStatus, setBackendStatus] = useState<'checking' | 'connected' | 'disconnected'>('checking');
+  const [backendHealth, setBackendHealth] = useState<BackendHealth | null>(null);
 
   const isProcessing = useRef(false);
 
@@ -72,14 +92,40 @@ export const MCPAgent: FC = () => {
 
         if (response.ok) {
           setBackendStatus('connected');
-          setLogs(prev => [...prev, { message: "Connected to MCP Agent backend", done: true }]);
+
+          // Parse health data
+          const healthData = await response.json();
+          setBackendHealth(healthData);
+
+          // Add detailed connection log
+          setLogs(prev => [...prev, {
+            message: `Connected to MCP Agent backend (v${healthData.version || 'unknown'})`,
+            done: true
+          }]);
+
+          // Add service status logs
+          if (healthData.services) {
+            Object.entries(healthData.services).forEach((entry) => {
+              const serviceName = entry[0];
+              const serviceInfo = entry[1] as ServiceInfo;
+              setLogs(prev => [...prev, {
+                message: `Service ${serviceName}: ${serviceInfo.status}`,
+                done: serviceInfo.status === 'ok'
+              }]);
+            });
+          }
         } else {
           setBackendStatus('disconnected');
+          setBackendHealth(null);
           setLogs(prev => [...prev, { message: "Failed to connect to MCP Agent backend", done: true }]);
         }
       } catch (error) {
         setBackendStatus('disconnected');
-        setLogs(prev => [...prev, { message: "Cannot reach MCP Agent backend", done: true }]);
+        setBackendHealth(null);
+        setLogs(prev => [...prev, {
+          message: `Cannot reach MCP Agent backend: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          done: true
+        }]);
       }
     };
 
@@ -172,6 +218,8 @@ export const MCPAgent: FC = () => {
           </div>
         );
       }
+      
+      return null;
     },
   });
 
@@ -221,10 +269,36 @@ export const MCPAgent: FC = () => {
             <h3 className="text-lg font-semibold">MCP Agent Response</h3>
             <p className="text-sm text-muted-foreground">Multi-purpose Computing Platform</p>
           </div>
-          <div className={`px-2 py-1 rounded-full text-xs font-medium ${backendStatus === 'connected' ? 'bg-green-100 text-green-800' : backendStatus === 'checking' ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800'}`}>
-            {backendStatus === 'connected' ? 'Backend Connected' : backendStatus === 'checking' ? 'Checking Connection...' : 'Backend Disconnected'}
+          <div className="flex flex-col items-end gap-1">
+            <div className={`px-2 py-1 rounded-full text-xs font-medium ${backendStatus === 'connected' ? 'bg-green-100 text-green-800' : backendStatus === 'checking' ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800'}`}>
+              {backendStatus === 'connected' ? 'Backend Connected' : backendStatus === 'checking' ? 'Checking Connection...' : 'Backend Disconnected'}
+            </div>
+            {backendHealth && backendHealth.version && (
+              <div className="text-xs text-muted-foreground">
+                v{backendHealth.version}
+              </div>
+            )}
           </div>
         </div>
+
+        {backendHealth && backendHealth.services && (
+          <div className="mb-4 p-3 bg-muted/30 rounded-lg border border-border">
+            <h4 className="text-sm font-medium mb-2">Backend Services</h4>
+            <div className="grid grid-cols-2 gap-2">
+              {Object.entries(backendHealth.services).map((entry) => {
+                const serviceName = entry[0];
+                const serviceInfo = entry[1] as ServiceInfo;
+                return (
+                  <div key={serviceName} className="flex items-center gap-2">
+                    <div className={`w-2 h-2 rounded-full ${serviceInfo.status === 'ok' ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                    <span className="text-xs">{serviceName}</span>
+                    <span className="text-xs text-muted-foreground ml-auto">{serviceInfo.status}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         <ReactMarkdown
           className="prose prose-sm md:prose-base lg:prose-lg max-w-none bg-background p-6 rounded-lg border border-border animate-fade-in-up"

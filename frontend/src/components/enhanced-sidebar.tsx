@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState, useEffect, ReactNode } from "react";
+import type { ReactNode } from "react";
+import React, { useState, useEffect } from "react";
 
 import { useCoAgent } from "@copilotkit/react-core";
 import {
@@ -21,6 +22,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { useTheme } from "next-themes";
 
+
+import { HelpModal } from "@/components/help-modal";
 import { Button } from "@/components/ui/button";
 import {
   Sidebar,
@@ -34,6 +37,7 @@ import {
   useSidebar
 } from "@/components/ui/sidebar";
 import { AvailableAgents } from "@/lib/available-agents";
+import { useMounted } from "@/lib/use-mounted";
 import { cn } from "@/lib/utils";
 
 // Custom SidebarMenuItem that accepts icon and isActive props
@@ -68,6 +72,8 @@ export function EnhancedSidebar({
   const { setOpenMobile } = useSidebar();
   const [activeAgent, setActiveAgent] = useState<AvailableAgents | null>(null);
   const [isHovering, setIsHovering] = useState<string | null>(null);
+  const [showHelpModal, setShowHelpModal] = useState(false);
+  const mounted = useMounted();
 
   // Get agent running states
   const { running: travelAgentRunning } = useCoAgent({
@@ -192,9 +198,10 @@ export function EnhancedSidebar({
               {/* Travel Agent */}
               <SidebarMenuItem
                 className={cn(
-                  "transition-all-fast hover-scale",
+                  "transition-all-fast hover-scale cursor-pointer",
                   activeAgent === AvailableAgents.TRAVEL_AGENT && "text-[hsl(var(--agent-travel))]"
                 )}
+                // Cannot directly start/stop agents from sidebar
               >
                 <div className="flex items-center gap-2 w-full">
                   <div
@@ -225,9 +232,10 @@ export function EnhancedSidebar({
               {/* Research Agent */}
               <SidebarMenuItem
                 className={cn(
-                  "transition-all-fast hover-scale",
+                  "transition-all-fast hover-scale cursor-pointer",
                   activeAgent === AvailableAgents.RESEARCH_AGENT && "text-[hsl(var(--agent-research))]"
                 )}
+                // Cannot directly start/stop agents from sidebar
               >
                 <div className="flex items-center gap-2 w-full">
                   <div
@@ -258,9 +266,10 @@ export function EnhancedSidebar({
               {/* MCP Agent */}
               <SidebarMenuItem
                 className={cn(
-                  "transition-all-fast hover-scale",
+                  "transition-all-fast hover-scale cursor-pointer",
                   activeAgent === AvailableAgents.MCP_AGENT && "text-[hsl(var(--agent-mcp))]"
                 )}
+                // Cannot directly start/stop agents from sidebar
               >
                 <div className="flex items-center gap-2 w-full">
                   <div
@@ -291,9 +300,10 @@ export function EnhancedSidebar({
               {/* Knowledge Agent */}
               <SidebarMenuItem
                 className={cn(
-                  "transition-all-fast hover-scale",
+                  "transition-all-fast hover-scale cursor-pointer",
                   activeAgent === AvailableAgents.KNOWLEDGE_AGENT && "text-[hsl(var(--agent-knowledge))]"
                 )}
+                // Cannot directly start/stop agents from sidebar
               >
                 <div className="flex items-center gap-2 w-full">
                   <div
@@ -354,20 +364,22 @@ export function EnhancedSidebar({
         <SidebarFooter className="mt-auto">
           <SidebarGroup>
             <div className="space-y-1 px-2">
-              {/* Theme Toggle */}
-              <SidebarMenuButton
-                variant="default"
-                size="sm"
-                onClick={toggleTheme}
-                tooltip={theme === "dark" ? "Light Mode" : "Dark Mode"}
-                className="transition-all-fast hover-scale"
-              >
-                {theme === "dark" ? (
-                  <Sun className="h-5 w-5 animate-fade-in" />
-                ) : (
-                  <Moon className="h-5 w-5 animate-fade-in" />
-                )}
-              </SidebarMenuButton>
+              {/* Theme Toggle - Only render when mounted to avoid hydration mismatch */}
+              {mounted && (
+                <SidebarMenuButton
+                  variant="default"
+                  size="sm"
+                  onClick={toggleTheme}
+                  tooltip={theme === "dark" ? "Light Mode" : "Dark Mode"}
+                  className="transition-all-fast hover-scale"
+                >
+                  {theme === "dark" ? (
+                    <Sun className="h-5 w-5 animate-fade-in" />
+                  ) : (
+                    <Moon className="h-5 w-5 animate-fade-in" />
+                  )}
+                </SidebarMenuButton>
+              )}
 
               {/* Help Button */}
               <SidebarMenuButton
@@ -375,6 +387,7 @@ export function EnhancedSidebar({
                 size="sm"
                 tooltip="Help"
                 className="transition-all-fast hover-scale"
+                onClick={() => setShowHelpModal(true)}
               >
                 <HelpCircle className="h-5 w-5" />
               </SidebarMenuButton>
@@ -400,6 +413,9 @@ export function EnhancedSidebar({
           </SidebarGroup>
         </SidebarFooter>
       </Sidebar>
+
+      {/* Help Modal */}
+      <HelpModal isOpen={showHelpModal} onClose={() => setShowHelpModal(false)} />
     </div>
   );
 }
