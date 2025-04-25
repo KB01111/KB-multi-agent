@@ -71,33 +71,63 @@ Make sure you have:
 - [Copilot Cloud](https://cloud.copilotkit.ai) for the frontend
 - OpenAI API key for the backend (optional)
 
-### 3. One-Click Startup (Recommended)
+### 3. Starting the Application
 
-We've created convenient scripts to start both the frontend and backend with a single command:
+We've simplified the application management to a single script that handles all operations:
 
-**Windows (PowerShell - Recommended):**
-```
+```powershell
+# Start the application (standard mode)
 ./start-app.ps1
+
+# Start with interactive mode (includes Supabase)
+./start-app.ps1 -Interactive
+
+# Force restart (when console windows aren't visible)
+./start-app.ps1 -Force
+
+# Stop all components
+./start-app.ps1 -Action stop
+
+# Restart specific component
+./start-app.ps1 -Action restart -Component backend
+
+# Check status
+./start-app.ps1 -Action status -Detailed
 ```
 
-This script will:
+This unified script will:
 - Check for required dependencies
 - Start the backend with a health endpoint
 - Start the frontend
-- Verify the integration between frontend and backend
+- Initialize the database (PostgreSQL or Supabase)
+- Verify the integration between all components
 
-All other scripts are organized in the `scripts` directory for better maintainability. You can access them directly:
+**Parameters:**
+- `-Action`: start, stop, restart, or status (default: start)
+- `-Component`: all, backend, frontend, or database (default: all)
+- `-Interactive`: Enable interactive mode with Supabase
+- `-Force`: Force restart, creating new console windows
+- `-Detailed`: Show detailed status information
 
-```
-./scripts/stop-app.ps1  # Stop all services
-./scripts/check-app-health.ps1  # Check the health of all services
-```
+Examples:
+```powershell
+# Basic operations
+./start-app.ps1                                  # Start everything
+./start-app.ps1 -Interactive                     # Start with Supabase integration
+./start-app.ps1 -Action stop                     # Stop all components
 
-Or use the batch files if you prefer:
+# Force restart (creates new console windows)
+./start-app.ps1 -Force                           # Force restart all components
+./start-app.ps1 -Component backend -Force        # Force restart just the backend
 
-```
-.\scripts\stop-app.bat  # Stop all services
-.\scripts\check-app-health.bat  # Check the health of all services
+# Component-specific operations
+./start-app.ps1 -Component backend               # Start just the backend
+./start-app.ps1 -Component frontend              # Start just the frontend
+./start-app.ps1 -Component database              # Initialize the database
+./start-app.ps1 -Action restart -Component backend # Restart the backend
+
+# Status and maintenance
+./start-app.ps1 -Action status -Detailed         # Detailed status check
 ```
 
 ### Database Integration
@@ -115,7 +145,7 @@ To set up PostgreSQL:
 
 2. Initialize the database:
 ```
-./scripts/init-database.ps1  # or ./scripts/init-database.bat
+./scripts/manage-app.ps1 -Action start -Component database
 ```
 
 The PostgreSQL connection is configured in the `agent/.env` file with the following variables:
@@ -151,9 +181,11 @@ To set up Supabase:
    SUPABASE_SERVICE_KEY=your-service-key
    ```
 
-4. Initialize Supabase tables and default user:
+4. Initialize Supabase tables and default user (either method works):
 ```
-./scripts/init-supabase.ps1  # or ./scripts/init-supabase.bat
+./scripts/init-supabase.ps1                                      # Manual initialization
+./scripts/manage-app.ps1 -Action start -Component supabase       # Using the management script
+./start-app-interactive.ps1                                      # Using the interactive startup script
 ```
 
 5. Run the SQL script in `scripts/update-supabase-tables.sql` in the Supabase SQL Editor to ensure all tables are properly configured.
@@ -199,7 +231,7 @@ pnpm run build && pnpm run start  # for production
 
 ![mcp-demo](./agent/demo/mcp-demo.gif)
 
-The MCP Agent allows you to connect to various MCP-compatible servers:
+The MCP Agent allows you to connect to various MCP-compatible servers and select different agent frameworks:
 
 1. **Configuring Custom MCP Servers**:
    - Click the "MCP Servers" button in the top right of the interface
@@ -209,6 +241,13 @@ The MCP Agent allows you to connect to various MCP-compatible servers:
 
 2. **Public MCP Servers**:
    - You can connect to public MCP servers like [mcp.composio.dev](https://mcp.composio.dev/) and [mcp.run](https://www.mcp.run/)
+
+3. **Framework Selection**:
+   - Click the settings icon in the MCP Agent interface
+   - Select from available frameworks:
+     - **LangGraph**: Default framework using LangGraph for agent workflows
+     - **OpenAI Agents**: Alternative framework using OpenAI Agents SDK
+     - **Hybrid**: Uses OpenAI Agents first, falls back to LangGraph if there's an error
 
 ### Knowledge Agent
 
@@ -236,6 +275,11 @@ Rename the `example.env` file in the `agent` folder to `.env`:
 ```sh
 OPENAI_API_KEY=...
 LANGSMITH_API_KEY=...
+
+# Framework Configuration
+# Options: langgraph, openai_agents, hybrid
+FRAMEWORK=langgraph
+DEFAULT_MODEL=gpt-4o
 
 # Optional Logfire configuration
 LOGFIRE_PROJECT=kb-multi-agent
@@ -265,7 +309,12 @@ The custom server provides a health endpoint at http://localhost:8124/health tha
    - `/health`: Check if the server is running
    - `/routes`: List all available API routes
    - `/`: Root endpoint with server information
+   - `/config/mode`: Set the framework mode (langgraph, openai_agents, hybrid)
 3. **Automatic Fallback**: If the custom server fails to start, it automatically falls back to a simple health server to maintain basic functionality.
+4. **Framework Selection**: The server supports multiple agent frameworks:
+   - **LangGraph**: Default framework using LangGraph for agent workflows
+   - **OpenAI Agents**: Alternative framework using OpenAI Agents SDK
+   - **Hybrid**: Uses OpenAI Agents first, falls back to LangGraph if there's an error
 
 ## Running a tunnel
 
@@ -277,14 +326,27 @@ Once this is done, copy the command into your terminal and change the port to ma
 
 ## Testing the Backend
 
-A test script is included to verify that the backend is working correctly:
+Test scripts are included to verify that the backend is working correctly:
 
 ```sh
+# Test basic server functionality
 cd agent
 python test_server.py
+
+# Test framework integration
+python test_framework_integration.py
+
+# Test with a specific framework
+python test_server.py --framework openai_agents
 ```
 
-This script tests the health endpoint, routes endpoint, and root endpoint to ensure the server is functioning properly.
+You can also use the PowerShell script to test the framework integration:
+
+```sh
+./scripts/test-framework.ps1
+```
+
+These scripts test the health endpoint, routes endpoint, root endpoint, and framework selection to ensure the server is functioning properly.
 
 ## Backend Integrations
 
@@ -309,51 +371,158 @@ The backend includes several modular integrations that can be configured via env
 
 ## Troubleshooting
 
+### Quick Fix Scripts
+
+We've created several scripts to help diagnose and fix common issues:
+
+1. **Simple Start Script**:
+
+   ```powershell
+   ./scripts/simple-start.ps1
+   ```
+
+   This script starts both the backend and frontend in minimal mode, bypassing any complex initialization.
+
+2. **Backend Diagnostic Script**:
+
+   ```powershell
+   ./scripts/diagnose-backend.ps1
+   ```
+
+   Checks for common backend issues and provides detailed diagnostics.
+
+3. **Frontend Fix Script**:
+
+   ```powershell
+   ./scripts/fix-frontend.ps1
+   ```
+
+   Clears Next.js cache and rebuilds the frontend to fix chunk loading errors.
+
 ### Port Conflicts
 
 If you encounter port conflicts when starting the backend server, you may see an error like:
 
-```
+```bash
 ERROR: [Errno 10048] error while attempting to bind on address ('127.0.0.1', 8124): [winerror 10048] only one usage of each socket address is allowed
 ```
 
 To resolve this:
 
 1. Find the process using the port:
-   ```
+
+   ```powershell
    netstat -ano | findstr :8124
    ```
 
 2. Terminate the process:
-   ```
+
+   ```powershell
    taskkill /F /PID <process_id>
    ```
 
-3. Restart the server
+3. Alternatively, use our fix script:
+
+   ```powershell
+   ./scripts/fix-backend-offline.ps1
+   ```
 
 ### Backend Connection Issues
 
 If the frontend cannot connect to the backend:
 
 1. Verify the backend is running:
-   ```
+
+   ```bash
    curl http://localhost:8124/health
    ```
 
 2. Check that the frontend's `.env` file has the correct backend URL:
-   ```
+
+   ```env
    NEXT_PUBLIC_BACKEND_URL=http://localhost:8124
    ```
 
 3. Run the test script to verify the backend is working correctly:
-   ```
+
+   ```bash
    cd agent && python test_server.py
    ```
 
+4. If the backend still won't start, try running the health server directly:
+
+   ```bash
+   cd agent && poetry run python -m mcp_agent.health_server
+   ```
+
+### Frontend Issues
+
+#### Chunk Loading Errors
+
+If you encounter chunk loading errors in the frontend, you may see errors like:
+
+```javascript
+ChunkLoadError: Loading chunk [...] failed
+```
+
+To fix this:
+
+1. Clear the Next.js cache:
+
+   ```bash
+   cd frontend
+   rm -rf .next
+   rm -rf node_modules/.cache
+   ```
+
+2. Rebuild the application:
+
+   ```bash
+   pnpm install
+   pnpm run build
+   pnpm run dev
+   ```
+
+3. Alternatively, use our fix script:
+
+   ```powershell
+   ./scripts/fix-frontend.ps1
+   ```
+
+#### Next.js Server Component Errors
+
+If you see errors related to Server Components, such as:
+
+```javascript
+Error: `ssr: false` is not allowed with `next/dynamic` in Server Components
+```
+
+This is because Next.js App Router uses Server Components by default. To fix:
+
+1. Move dynamic imports with `ssr: false` to Client Components
+2. Add the "use client" directive to components that use browser-specific features
+3. Create client component wrappers for components that need to be used in Server Components
+
+### Offline Mode
+
+The application is designed to work in offline mode when Supabase or other external services are not available:
+
+1. The backend will run in fallback mode with limited functionality
+2. The frontend will use localStorage for temporary storage
+3. Basic chat and agent functionality will still work
+
+To start in offline mode:
+
+```powershell
+./scripts/simple-start.ps1
+```
+
 ## Documentation
+
 - [CopilotKit Docs](https://docs.copilotkit.ai/coagents)
 - [LangGraph Platform Docs](https://langchain-ai.github.io/langgraph/cloud/deployment/cloud/)
 - [Model Context Protocol (MCP) Docs](https://github.com/langchain-ai/langgraph/tree/main/examples/mcp)
 
 ## License
+
 Distributed under the MIT License. See LICENSE for more info.

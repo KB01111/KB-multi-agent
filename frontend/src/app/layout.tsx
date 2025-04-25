@@ -3,6 +3,7 @@ import { Inter, JetBrains_Mono } from "next/font/google";
 
 import "./globals.css";
 import Providers from "@/providers/Providers";
+import { ClientErrorBoundary } from "@/components/client-error-boundary";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -34,7 +35,41 @@ export default function RootLayout({
         suppressHydrationWarning
         className={`${inter.variable} ${jetbrainsMono.variable} antialiased bg-background text-foreground transition-colors duration-300`}
       >
-        <Providers>{children}</Providers>
+        <ClientErrorBoundary>
+          <Providers>{children}</Providers>
+        </ClientErrorBoundary>
+
+        {/* Add script to handle chunk loading errors */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              // Add global error handler for chunk loading errors
+              window.addEventListener('error', function(event) {
+                if (event.error &&
+                   (event.error.message && event.error.message.includes('ChunkLoadError') ||
+                    event.error.message && event.error.message.includes('Loading chunk') ||
+                    event.error.stack && event.error.stack.includes('webpack'))) {
+                  console.log('Caught chunk loading error in global handler, attempting recovery');
+
+                  // Clear localStorage cache related to Next.js
+                  Object.keys(localStorage).forEach(key => {
+                    if (key.startsWith('next-') || key.includes('chunk') || key.includes('webpack')) {
+                      localStorage.removeItem(key);
+                    }
+                  });
+
+                  // Reload the page after a short delay
+                  setTimeout(() => {
+                    window.location.reload();
+                  }, 1000);
+
+                  // Prevent the error from bubbling up
+                  event.preventDefault();
+                }
+              });
+            `,
+          }}
+        />
       </body>
     </html>
   );
