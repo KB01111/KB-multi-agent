@@ -16,10 +16,15 @@ import {
   Home,
   MessageSquare,
   Github,
-  HelpCircle
+  HelpCircle,
+  Users,
+  Brain,
+  GitBranch,
+  Workflow
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useTheme } from "next-themes";
 
 
@@ -74,6 +79,7 @@ export function EnhancedSidebar({
   const [isHovering, setIsHovering] = useState<string | null>(null);
   const [showHelpModal, setShowHelpModal] = useState(false);
   const mounted = useMounted();
+  const pathname = usePathname();
 
   // Get agent running states
   const { running: travelAgentRunning } = useCoAgent({
@@ -170,7 +176,7 @@ export function EnhancedSidebar({
             <SidebarMenu>
               <EnhancedSidebarMenuItem
                 icon={<Home className="h-5 w-5" />}
-                isActive={!activeAgent}
+                isActive={pathname === "/" && !activeAgent}
                 className="transition-all-fast hover-scale"
               >
                 <Link href="/" className="flex w-full">
@@ -178,14 +184,15 @@ export function EnhancedSidebar({
                 </Link>
               </EnhancedSidebarMenuItem>
 
-              <SidebarMenuItem className="transition-all-fast hover-scale">
-                <div className="flex items-center gap-2 w-full">
-                  <span><MessageSquare className="h-5 w-5" /></span>
-                  <Link href="/" className="flex w-full">
-                    Chat
-                  </Link>
-                </div>
-              </SidebarMenuItem>
+              <EnhancedSidebarMenuItem
+                icon={<MessageSquare className="h-5 w-5" />}
+                isActive={pathname === "/chat" || pathname.includes("/chat")}
+                className="transition-all-fast hover-scale"
+              >
+                <Link href="/chat" className="flex w-full">
+                  Chat
+                </Link>
+              </EnhancedSidebarMenuItem>
             </SidebarMenu>
           </SidebarGroup>
 
@@ -199,11 +206,11 @@ export function EnhancedSidebar({
               <SidebarMenuItem
                 className={cn(
                   "transition-all-fast hover-scale cursor-pointer",
-                  activeAgent === AvailableAgents.TRAVEL_AGENT && "text-[hsl(var(--agent-travel))]"
+                  (activeAgent === AvailableAgents.TRAVEL_AGENT || pathname === "/travel") && "text-[hsl(var(--agent-travel))]"
                 )}
                 // Cannot directly start/stop agents from sidebar
               >
-                <div className="flex items-center gap-2 w-full">
+                <Link href="/travel" className="flex items-center gap-2 w-full">
                   <div
                     className={cn(
                       "relative",
@@ -226,18 +233,18 @@ export function EnhancedSidebar({
                       <span className="ml-2 inline-flex h-2 w-2 rounded-full bg-[hsl(var(--agent-travel))] animate-pulse-subtle" />
                     )}
                   </span>
-                </div>
+                </Link>
               </SidebarMenuItem>
 
               {/* Research Agent */}
               <SidebarMenuItem
                 className={cn(
                   "transition-all-fast hover-scale cursor-pointer",
-                  activeAgent === AvailableAgents.RESEARCH_AGENT && "text-[hsl(var(--agent-research))]"
+                  (activeAgent === AvailableAgents.RESEARCH_AGENT || pathname === "/research") && "text-[hsl(var(--agent-research))]"
                 )}
                 // Cannot directly start/stop agents from sidebar
               >
-                <div className="flex items-center gap-2 w-full">
+                <Link href="/research" className="flex items-center gap-2 w-full">
                   <div
                     className={cn(
                       "relative",
@@ -260,18 +267,18 @@ export function EnhancedSidebar({
                       <span className="ml-2 inline-flex h-2 w-2 rounded-full bg-[hsl(var(--agent-research))] animate-pulse-subtle" />
                     )}
                   </span>
-                </div>
+                </Link>
               </SidebarMenuItem>
 
               {/* MCP Agent */}
               <SidebarMenuItem
                 className={cn(
                   "transition-all-fast hover-scale cursor-pointer",
-                  activeAgent === AvailableAgents.MCP_AGENT && "text-[hsl(var(--agent-mcp))]"
+                  (activeAgent === AvailableAgents.MCP_AGENT || pathname === "/mcp") && "text-[hsl(var(--agent-mcp))]"
                 )}
                 // Cannot directly start/stop agents from sidebar
               >
-                <div className="flex items-center gap-2 w-full">
+                <Link href="/mcp" className="flex items-center gap-2 w-full">
                   <div
                     className={cn(
                       "relative",
@@ -294,18 +301,18 @@ export function EnhancedSidebar({
                       <span className="ml-2 inline-flex h-2 w-2 rounded-full bg-[hsl(var(--agent-mcp))] animate-pulse-subtle" />
                     )}
                   </span>
-                </div>
+                </Link>
               </SidebarMenuItem>
 
               {/* Knowledge Agent */}
               <SidebarMenuItem
                 className={cn(
                   "transition-all-fast hover-scale cursor-pointer",
-                  activeAgent === AvailableAgents.KNOWLEDGE_AGENT && "text-[hsl(var(--agent-knowledge))]"
+                  (activeAgent === AvailableAgents.KNOWLEDGE_AGENT || pathname === "/knowledge") && "text-[hsl(var(--agent-knowledge))]"
                 )}
                 // Cannot directly start/stop agents from sidebar
               >
-                <div className="flex items-center gap-2 w-full">
+                <Link href="/knowledge" className="flex items-center gap-2 w-full">
                   <div
                     className={cn(
                       "relative",
@@ -328,7 +335,7 @@ export function EnhancedSidebar({
                       <span className="ml-2 inline-flex h-2 w-2 rounded-full bg-[hsl(var(--agent-knowledge))] animate-pulse-subtle" />
                     )}
                   </span>
-                </div>
+                </Link>
               </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroup>
@@ -340,6 +347,42 @@ export function EnhancedSidebar({
             </h3>
             <SidebarMenu>
               <SidebarMenuItem
+                className={cn(
+                  "transition-all-fast hover-scale",
+                  pathname === "/agents" && "text-sidebar-accent-foreground"
+                )}
+              >
+                <Link href="/agents" className="flex items-center gap-2 w-full">
+                  <span><Brain className="h-5 w-5" /></span>
+                  <span className="flex w-full">Agent Manager</span>
+                </Link>
+              </SidebarMenuItem>
+
+              <SidebarMenuItem
+                className={cn(
+                  "transition-all-fast hover-scale",
+                  pathname === "/teams" && "text-sidebar-accent-foreground"
+                )}
+              >
+                <Link href="/teams" className="flex items-center gap-2 w-full">
+                  <span><Users className="h-5 w-5" /></span>
+                  <span className="flex w-full">Team Manager</span>
+                </Link>
+              </SidebarMenuItem>
+
+              <SidebarMenuItem
+                className={cn(
+                  "transition-all-fast hover-scale",
+                  pathname === "/workflows" && "text-sidebar-accent-foreground"
+                )}
+              >
+                <Link href="/workflows" className="flex items-center gap-2 w-full">
+                  <span><Workflow className="h-5 w-5" /></span>
+                  <span className="flex w-full">Workflow Editor</span>
+                </Link>
+              </SidebarMenuItem>
+
+              <SidebarMenuItem
                 className="transition-all-fast hover-scale"
                 onClick={onShowMCPConfigModal}
               >
@@ -348,6 +391,7 @@ export function EnhancedSidebar({
                   <span className="flex w-full">MCP Servers</span>
                 </div>
               </SidebarMenuItem>
+
               <SidebarMenuItem
                 className="transition-all-fast hover-scale"
                 onClick={onShowSettingsModal}

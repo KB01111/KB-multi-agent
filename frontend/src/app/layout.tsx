@@ -4,6 +4,7 @@ import { Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import Providers from "@/providers/Providers";
 import { ClientErrorBoundary } from "@/components/client-error-boundary";
+import { Toaster } from "@/components/ui/toaster";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -38,6 +39,7 @@ export default function RootLayout({
         <ClientErrorBoundary>
           <Providers>{children}</Providers>
         </ClientErrorBoundary>
+        <Toaster />
 
         {/* Add script to handle chunk loading errors */}
         <script

@@ -5,6 +5,7 @@ import { Server, Database, CheckCircle, XCircle, AlertTriangle, RefreshCw } from
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { ApiClient } from "@/lib/api-client";
 
 type ServiceInfo = {
   available: boolean;
@@ -34,21 +35,35 @@ export function BackendStatus() {
     setIsRefreshing(true);
     try {
       const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8124";
-      const response = await fetch(`${backendUrl}/health`, {
-        method: 'GET',
-        headers: { 'Content-Type': 'application/json' },
-        cache: 'no-store'
-      });
+      console.log(`Checking backend status at ${backendUrl}/health`);
 
-      if (response.ok) {
+      // Create an API client instance
+      const apiClient = new ApiClient(backendUrl);
+
+      // Check if the backend is available
+      const isAvailable = await apiClient.isBackendAvailable();
+
+      if (isAvailable) {
+        // Get detailed health information
+        const healthData = await apiClient.getHealthInfo();
+        console.log('Backend health data:', healthData);
+
         setBackendStatus('connected');
-        const healthData = await response.json();
         setBackendHealth(healthData);
       } else {
+        console.error('Backend health check failed');
         setBackendStatus('disconnected');
         setBackendHealth(null);
       }
     } catch (error) {
+      console.error('Backend health check error:', error);
+      // Log more detailed error information
+      if (error instanceof Error) {
+        console.error('Error name:', error.name);
+        console.error('Error message:', error.message);
+        console.error('Error stack:', error.stack);
+      }
+
       setBackendStatus('disconnected');
       setBackendHealth(null);
     } finally {
@@ -102,10 +117,10 @@ export function BackendStatus() {
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  className="h-6 w-6" 
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6"
                   onClick={checkBackendStatus}
                   disabled={isRefreshing}
                 >
@@ -125,14 +140,14 @@ export function BackendStatus() {
               <span className="text-muted-foreground">Version:</span>
               <span className="font-medium">{backendHealth.version}</span>
             </div>
-            
+
             {backendHealth.framework && (
               <div className="flex items-center justify-between">
                 <span className="text-muted-foreground">Framework:</span>
                 <span className="font-medium">{backendHealth.framework}</span>
               </div>
             )}
-            
+
             <div className="pt-2 border-t">
               <h4 className="text-xs font-semibold mb-2">Services</h4>
               {Object.entries(backendHealth.services).map(([name, info]) => (
@@ -145,7 +160,7 @@ export function BackendStatus() {
                 </div>
               ))}
             </div>
-            
+
             {backendHealth.system && (
               <div className="pt-2 border-t">
                 <h4 className="text-xs font-semibold mb-2">System</h4>

@@ -8,12 +8,36 @@ import sys
 import logging
 import importlib
 import datetime
+from enum import Enum
 from pathlib import Path
 from typing import Dict, Any, Optional
 from fastapi import FastAPI, Request, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
+
+# Import structured logger
+try:
+    from mcp_agent.logging import get_logger
+    use_structured_logger = True
+except ImportError:
+    use_structured_logger = False
+    logging.warning("Could not import structured logger, using standard logging")
+
+# Import database status module
+try:
+    from mcp_agent.database_status import router as database_router
+except ImportError:
+    logging.warning("Could not import database_status module")
+    database_router = None
+
+# Import API endpoints
+try:
+    from mcp_agent.api import api_router
+    logging.info("Successfully imported API endpoints")
+except ImportError as e:
+    logging.warning(f"Could not import API endpoints: {e}")
+    api_router = None
 
 # Initialize Sentry if available
 try:
@@ -64,8 +88,11 @@ except Exception as e:
     logging.warning(f"Error initializing Sentry: {e}")
 
 # Configure logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+if use_structured_logger:
+    logger = get_logger(__name__, log_to_file=True, log_dir="logs")
+else:
+    logging.basicConfig(level=logging.INFO)
+    logger = logging.getLogger(__name__)
 
 # Define models for API requests and responses
 class GraphRequest(BaseModel):
@@ -74,6 +101,11 @@ class GraphRequest(BaseModel):
 
 class GraphResponse(BaseModel):
     outputs: Dict[str, Any]
+
+class FrameworkMode(str, Enum):
+    LANGGRAPH = "langgraph"
+    OPENAI_AGENTS = "openai_agents"
+    HYBRID = "hybrid"
 
 # Create a new FastAPI app
 app = FastAPI(
@@ -112,8 +144,57 @@ def create_app():
         # Check if LangGraph is available
         langgraph_available = False
         try:
-            from mcp_agent.agent import graph
-            langgraph_available = True
+            # First check if langgraph is installed
+            import importlib.util
+            spec = importlib.util.find_spec("langgraph")
+            if spec is not None:
+                logger.info("LangGraph package is installed")
+                # Now try to import the graph from agent.py
+                try:
+                    from mcp_agent.agent import graph
+                    langgraph_available = True
+                    logger.info("Successfully imported graph from mcp_agent.agent")
+                except Exception as e:
+                    logger.warning(f"Error importing graph from mcp_agent.agent: {e}")
+                    # Even if we can't import the graph, if LangGraph is installed, mark it as available
+                    langgraph_available = True
+            else:
+                logger.warning("LangGraph package is not installed")
+        except Exception as e:
+            logger.warning(f"Error checking LangGraph availability: {e}")
+
+        # Check if OpenAI Agents SDK is available
+        openai_agents_available = False
+        try:
+            # Try the newer import path first (0.1.0+)
+            try:
+                import importlib.util
+                spec = importlib.util.find_spec("openai.agents")
+                openai_agents_available = spec is not None
+                if openai_agents_available:
+                    logger.info("OpenAI Agents SDK detected (openai.agents)")
+            except ImportError:
+                # Try the older import path (0.0.x)
+                import importlib.util
+                spec = importlib.util.find_spec("agents")
+                openai_agents_available = spec is not None
+                if openai_agents_available:
+                    logger.info("OpenAI Agents SDK detected (agents)")
+
+                # Try the openai-agents package
+                if not openai_agents_available:
+                    spec = importlib.util.find_spec("openai_agents")
+                    openai_agents_available = spec is not None
+                    if openai_agents_available:
+                        logger.info("OpenAI Agents SDK detected (openai_agents)")
+        except ImportError:
+            logger.warning("OpenAI Agents SDK not available")
+
+        # Check if adapters are available
+        adapters_available = False
+        try:
+            from mcp_agent.adapters import OpenAIAgentAdapter
+            adapters_available = True
         except ImportError:
             pass
 
@@ -139,15 +220,33 @@ def create_app():
         import platform
         import sys
 
+        # Get current framework mode
+        framework_mode = os.environ.get("FRAMEWORK", "langgraph").lower()
+
         return {
             "status": "ok",
             "message": "MCP Agent backend is running",
             "timestamp": datetime.datetime.now().isoformat(),
             "version": "0.1.0",
+            "framework": framework_mode,
             "services": {
                 "langgraph": {
                     "available": langgraph_available,
                     "status": "ok" if langgraph_available else "unavailable"
+                },
+                "openai_agents": {
+                    "available": openai_agents_available,
+                    "status": "ok" if openai_agents_available else "unavailable",
+                    "features": {
+                        "tracing": os.environ.get("OPENAI_AGENTS_TRACING_ENABLED", "false").lower() == "true",
+                        "voice": os.environ.get("OPENAI_AGENTS_VOICE_ENABLED", "false").lower() == "true",
+                        "parallel": os.environ.get("OPENAI_AGENTS_PARALLEL_ENABLED", "false").lower() == "true",
+                        "litellm": os.environ.get("OPENAI_AGENTS_LITELLM_ENABLED", "true").lower() == "true"
+                    }
+                },
+                "adapters": {
+                    "available": adapters_available,
+                    "status": "ok" if adapters_available else "unavailable"
                 },
                 "knowledge_server": {
                     "available": knowledge_server_available,
@@ -255,6 +354,13 @@ def create_app():
             ]
         }
 
+    # Add configuration endpoint to set the framework mode
+    @app.post("/config/mode")
+    async def set_mode(mode: FrameworkMode):
+        # Store the mode in an environment variable
+        os.environ["FRAMEWORK"] = mode.value
+        return {"mode": mode.value}
+
     # Add LangGraph integration endpoints
     try:
         from mcp_agent.agent import graph
@@ -262,9 +368,98 @@ def create_app():
         @app.post("/v1/graphs/mcp-agent/invoke")
         async def invoke_graph(request: GraphRequest):
             try:
-                # Run the graph with the provided inputs
-                result = await graph.ainvoke(request.inputs, request.config)
-                return GraphResponse(outputs=result)
+                # Get current framework mode
+                framework_mode = os.environ.get("FRAMEWORK", "langgraph").lower()
+
+                if framework_mode == "openai_agents":
+                    # Use OpenAI Agents processing if available
+                    try:
+                        from mcp_agent.adapters import OpenAIAgentAdapter
+                        from mcp_agent.agent_factory import AgentFactory
+
+                        # Create an agent factory with the current framework mode
+                        factory = AgentFactory()
+
+                        # Get the agent instructions from the request if available
+                        instructions = request.config.get("instructions", "You are a helpful assistant.") if request.config else "You are a helpful assistant."
+
+                        # Get advanced OpenAI Agents SDK features from the request if available
+                        enable_tracing = request.config.get("enable_tracing", False) if request.config else False
+                        enable_voice = request.config.get("enable_voice", False) if request.config else False
+                        enable_parallel = request.config.get("enable_parallel", False) if request.config else False
+                        enable_litellm = request.config.get("enable_litellm", True) if request.config else True
+
+                        # Create an OpenAI agent
+                        agent = factory._create_openai_agent(
+                            agent_id="mcp-agent",
+                            memory=factory.get_memory_manager(),
+                            llm=factory.get_llm_client(),
+                            a2a=factory.get_a2a_communicator(),
+                            knowledge=factory.get_knowledge_source(),
+                            logger=factory.get_logger(),
+                            instructions=instructions,
+                            enable_tracing=enable_tracing,
+                            enable_voice=enable_voice,
+                            enable_parallel=enable_parallel,
+                            enable_litellm=enable_litellm
+                        )
+
+                        # Process the request with the OpenAI agent
+                        result = await agent.process(request.inputs)
+                        return GraphResponse(outputs=result)
+                    except ImportError as e:
+                        logger.warning(f"OpenAI Agents processing failed: {e}, falling back to LangGraph")
+                        # Fall back to LangGraph processing
+                        result = await graph.ainvoke(request.inputs, request.config)
+                        return GraphResponse(outputs=result)
+                    except Exception as e:
+                        logger.error(f"Error invoking OpenAI agent: {e}")
+                        raise HTTPException(status_code=500, detail=str(e))
+                elif framework_mode == "hybrid":
+                    # Try OpenAI Agents first, fall back to LangGraph
+                    try:
+                        from mcp_agent.adapters import OpenAIAgentAdapter
+                        from mcp_agent.agent_factory import AgentFactory
+
+                        # Create an agent factory with the current framework mode
+                        factory = AgentFactory()
+
+                        # Get the agent instructions from the request if available
+                        instructions = request.config.get("instructions", "You are a helpful assistant.") if request.config else "You are a helpful assistant."
+
+                        # Get advanced OpenAI Agents SDK features from the request if available
+                        enable_tracing = request.config.get("enable_tracing", False) if request.config else False
+                        enable_voice = request.config.get("enable_voice", False) if request.config else False
+                        enable_parallel = request.config.get("enable_parallel", False) if request.config else False
+                        enable_litellm = request.config.get("enable_litellm", True) if request.config else True
+
+                        # Create an OpenAI agent
+                        agent = factory._create_openai_agent(
+                            agent_id="mcp-agent",
+                            memory=factory.get_memory_manager(),
+                            llm=factory.get_llm_client(),
+                            a2a=factory.get_a2a_communicator(),
+                            knowledge=factory.get_knowledge_source(),
+                            logger=factory.get_logger(),
+                            instructions=instructions,
+                            enable_tracing=enable_tracing,
+                            enable_voice=enable_voice,
+                            enable_parallel=enable_parallel,
+                            enable_litellm=enable_litellm
+                        )
+
+                        # Process the request with the OpenAI agent
+                        result = await agent.process(request.inputs)
+                        return GraphResponse(outputs=result)
+                    except Exception as e:
+                        logger.warning(f"OpenAI Agents processing failed: {e}, falling back to LangGraph")
+                        # Fall back to LangGraph processing
+                        result = await graph.ainvoke(request.inputs, request.config)
+                        return GraphResponse(outputs=result)
+                else:
+                    # Use LangGraph processing (default)
+                    result = await graph.ainvoke(request.inputs, request.config)
+                    return GraphResponse(outputs=result)
             except Exception as e:
                 logger.error(f"Error invoking graph: {e}")
                 raise HTTPException(status_code=500, detail=str(e))
@@ -323,6 +518,16 @@ def create_app():
                 "path": request.url.path
             }
         )
+
+    # Include database router if available
+    if database_router:
+        logger.info("Including database status endpoints")
+        app.include_router(database_router)
+
+    # Include API endpoints if available
+    if api_router:
+        logger.info("Including API endpoints")
+        app.include_router(api_router, prefix="/api")
 
     # Log all available routes
     logger.info(f"Available routes:")
