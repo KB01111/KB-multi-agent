@@ -66,12 +66,50 @@ Make sure you have:
 - [Poetry](https://python-poetry.org/docs/#installation) for backend dependencies
 - [Python](https://www.python.org/downloads/) (v3.10 or later)
 - [Node.js](https://nodejs.org/) (v18 or later)
+- [Docker](https://www.docker.com/products/docker-desktop/) (optional, for containerized deployment)
 
 ### 2. API Keys
 - [Copilot Cloud](https://cloud.copilotkit.ai) for the frontend
 - OpenAI API key for the backend (optional)
 
-### 3. Starting the Application
+### 3. Redis Installation (Optional but Recommended)
+For improved performance and caching, install Redis:
+
+```powershell
+# Install Redis dependencies
+./scripts/install-redis-deps.ps1  # or ./scripts/install-redis-deps.bat
+```
+
+This script will:
+- Install the Redis Python package
+- Install the OpenAI Agents SDK
+- Start a Redis container if Docker is installed
+
+You can also run Redis manually:
+```bash
+# Using Docker
+docker run --name kb-redis -p 6379:6379 -d redis
+
+# Or install Redis directly on your system
+# See https://redis.io/download for instructions
+```
+
+### 3a. Docker Setup (Alternative)
+Alternatively, you can use Docker to run the entire application stack:
+
+```powershell
+# Initialize Docker environment
+./start-app.ps1 -Action init -Docker
+
+# Start the application with Docker
+./start-app.ps1 -Docker
+```
+
+This will start all components (frontend, backend, Redis, and database) in Docker containers.
+
+For more information about using Docker, see [DOCKER.md](./DOCKER.md).
+
+### 4. Starting the Application
 
 We've simplified the application management to a single script that handles all operations:
 
@@ -108,6 +146,7 @@ This unified script will:
 - `-Interactive`: Enable interactive mode with Supabase
 - `-Force`: Force restart, creating new console windows
 - `-Detailed`: Show detailed status information
+- `-Docker`: Use Docker for deployment
 
 Examples:
 ```powershell
@@ -128,6 +167,13 @@ Examples:
 
 # Status and maintenance
 ./start-app.ps1 -Action status -Detailed         # Detailed status check
+
+# Docker operations
+./start-app.ps1 -Docker                          # Start everything with Docker
+./start-app.ps1 -Action stop -Docker             # Stop Docker containers
+./start-app.ps1 -Action restart -Docker          # Restart Docker containers
+./start-app.ps1 -Action status -Docker           # Check Docker container status
+./start-app.ps1 -Action init -Docker             # Initialize Docker environment
 ```
 
 ### Database Integration
@@ -285,6 +331,15 @@ DEFAULT_MODEL=gpt-4o
 LOGFIRE_PROJECT=kb-multi-agent
 LOGFIRE_TOKEN=...
 LOGGING_ENABLED=true
+
+# Redis Configuration
+REDIS_ENABLED=true
+REDIS_URL=redis://localhost:6379/0
+
+# Database Configuration
+DATABASE_BACKEND=supabase
+SUPABASE_URL=...
+SUPABASE_SERVICE_KEY=...
 ```
 
 If you want to use the included MCP Agent with the built-in math and knowledge servers:
@@ -369,6 +424,20 @@ The backend includes several modular integrations that can be configured via env
    - `logfire`: Integration with [Logfire](https://logfire.ai/) for logging, tracing, and monitoring
    - See [Logfire Integration](./agent/LOGFIRE.md) for detailed setup instructions
 
+6. **Redis Integration**:
+   - Caching for LLM responses to improve performance and reduce API costs
+   - Session management for persistent user sessions
+   - Rate limiting for API endpoints
+   - Pub/Sub for real-time communication between components
+   - See [Redis Integration](./agent/mcp_agent/integrations/README_REDIS.md) for detailed setup instructions
+
+7. **OpenAI Agents SDK Integration**:
+   - Full integration with OpenAI's official Agents SDK
+   - Support for advanced features like tracing, voice, and parallel execution
+   - Team support for creating and managing agent teams
+   - Tool conversion between LangChain and OpenAI Agents SDK
+   - See [OpenAI Agents SDK Integration](./agent/mcp_agent/adapters/README_OPENAI_AGENTS.md) for detailed setup instructions
+
 ## Troubleshooting
 
 ### Quick Fix Scripts
@@ -398,6 +467,14 @@ We've created several scripts to help diagnose and fix common issues:
    ```
 
    Clears Next.js cache and rebuilds the frontend to fix chunk loading errors.
+
+4. **Poetry Permissions Fix Script**:
+
+   ```powershell
+   ./scripts/fix-poetry-permissions.ps1
+   ```
+
+   Resolves permission issues with Poetry's cache directory by configuring Poetry to use a local cache directory in the project.
 
 ### Port Conflicts
 
@@ -502,6 +579,29 @@ This is because Next.js App Router uses Server Components by default. To fix:
 1. Move dynamic imports with `ssr: false` to Client Components
 2. Add the "use client" directive to components that use browser-specific features
 3. Create client component wrappers for components that need to be used in Server Components
+
+### Poetry Permission Issues
+
+If you encounter permission errors when running `poetry install`, you may see an error like:
+
+```bash
+[Errno 13] Permission denied: 'C:\\Users\\username\\AppData\\Local\\pypoetry\\Cache\\cache\\repositories\\PyPI\\_http\\...'
+```
+
+This is typically caused by permission issues with Poetry's cache directory. To fix this:
+
+1. Run our fix script:
+
+   ```powershell
+   ./scripts/fix-poetry-permissions.ps1
+   ```
+
+2. This script will:
+   - Configure Poetry to use a local cache directory in the project
+   - Clear any existing cache
+   - Run the installation with the `--no-cache` flag
+
+3. If you still encounter issues, try running PowerShell as an administrator.
 
 ### Offline Mode
 

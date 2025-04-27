@@ -1,10 +1,13 @@
 "use client";
 
-import React, { ReactNode } from "react";
-import Link from "next/link";
+import type { ReactNode } from "react";
+import React from "react";
+
 import { ChevronRight, ArrowLeft } from "lucide-react";
-import { cn } from "@/lib/utils";
+import Link from "next/link";
+
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 interface BreadcrumbItem {
   label: string;

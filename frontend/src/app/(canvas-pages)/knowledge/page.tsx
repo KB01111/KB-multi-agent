@@ -1,16 +1,17 @@
 "use client";
 
 import { useEffect } from "react";
-import { useRouter } from "next/navigation";
 
 import { useCoAgent } from "@copilotkit/react-core";
+import { useRouter } from "next/navigation";
+
 
 import { KnowledgeAgent } from "@/components/agents/knowledge-agent";
 import { AvailableAgents } from "@/lib/available-agents";
 
 export default function KnowledgePage() {
   const router = useRouter();
-  
+
   // Get agent state
   const { running, start } = useCoAgent({
     name: AvailableAgents.KNOWLEDGE_AGENT,

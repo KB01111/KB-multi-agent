@@ -10,11 +10,19 @@ import importlib
 import datetime
 from enum import Enum
 from pathlib import Path
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List, Union
 from fastapi import FastAPI, Request, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
+
+# Import integrations
+from mcp_agent.integrations import (
+    Mem0MemoryManager,
+    LiteLLMManager,
+    LogfireManager,
+    SupabaseManager
+)
 
 # Import structured logger
 try:
@@ -126,8 +134,24 @@ def create_app():
     # Change to the agent directory
     os.chdir(agent_dir)
 
-    # Log the app creation
+    # Initialize integrations
+    mem0_manager = Mem0MemoryManager()
+    litellm_manager = LiteLLMManager()
+    logfire_manager = LogfireManager()
+    supabase_manager = SupabaseManager()
+
+    # Log the app creation and integration status
     logger.info(f"Created FastAPI app for MCP Agent server")
+    logger.info(f"Mem0 integration enabled: {mem0_manager.enabled}")
+    logger.info(f"LiteLLM integration enabled: {litellm_manager.enabled}")
+    logger.info(f"Logfire integration enabled: {logfire_manager.enabled}")
+    logger.info(f"Supabase integration enabled: {supabase_manager.enabled}")
+
+    # Store integrations in app state for access in endpoints
+    app.state.mem0_manager = mem0_manager
+    app.state.litellm_manager = litellm_manager
+    app.state.logfire_manager = logfire_manager
+    app.state.supabase_manager = supabase_manager
 
     # Add CORS middleware
     app.add_middleware(
@@ -223,12 +247,33 @@ def create_app():
         # Get current framework mode
         framework_mode = os.environ.get("FRAMEWORK", "langgraph").lower()
 
+        # Get integration status
+        integrations = {
+            "mem0": {
+                "available": app.state.mem0_manager.enabled,
+                "status": "ok" if app.state.mem0_manager.enabled else "unavailable"
+            },
+            "litellm": {
+                "available": app.state.litellm_manager.enabled,
+                "status": "ok" if app.state.litellm_manager.enabled else "unavailable"
+            },
+            "logfire": {
+                "available": app.state.logfire_manager.enabled,
+                "status": "ok" if app.state.logfire_manager.enabled else "unavailable"
+            },
+            "supabase": {
+                "available": app.state.supabase_manager.enabled,
+                "status": "ok" if app.state.supabase_manager.enabled else "unavailable"
+            }
+        }
+
         return {
             "status": "ok",
             "message": "MCP Agent backend is running",
             "timestamp": datetime.datetime.now().isoformat(),
             "version": "0.1.0",
             "framework": framework_mode,
+            "integrations": integrations,
             "services": {
                 "langgraph": {
                     "available": langgraph_available,
@@ -276,6 +321,77 @@ def create_app():
             }
             routes.append(route_info)
         return {"routes": routes}
+
+    # Add endpoints for integrations
+    @app.get("/integrations/status")
+    async def integrations_status():
+        """Get the status of all integrations."""
+        return {
+            "mem0": {
+                "enabled": app.state.mem0_manager.enabled,
+                "status": "ok" if app.state.mem0_manager.enabled else "unavailable"
+            },
+            "litellm": {
+                "enabled": app.state.litellm_manager.enabled,
+                "status": "ok" if app.state.litellm_manager.enabled else "unavailable",
+                "default_model": app.state.litellm_manager.default_model if app.state.litellm_manager.enabled else None
+            },
+            "logfire": {
+                "enabled": app.state.logfire_manager.enabled,
+                "status": "ok" if app.state.logfire_manager.enabled else "unavailable",
+                "project": app.state.logfire_manager.project if app.state.logfire_manager.enabled else None
+            },
+            "supabase": {
+                "enabled": app.state.supabase_manager.enabled,
+                "status": "ok" if app.state.supabase_manager.enabled else "unavailable"
+            }
+        }
+
+    # Add memory endpoints
+    @app.post("/memory/store")
+    async def store_memory(content: str, metadata: Optional[Dict[str, Any]] = None):
+        """Store a memory in Mem0."""
+        if not app.state.mem0_manager.enabled:
+            raise HTTPException(status_code=503, detail="Mem0 integration not available")
+
+        memory_id = await app.state.mem0_manager.store_memory(content, metadata)
+        if memory_id:
+            return {"memory_id": memory_id, "status": "success"}
+        else:
+            raise HTTPException(status_code=500, detail="Failed to store memory")
+
+    @app.get("/memory/retrieve")
+    async def retrieve_memory(query: str, limit: int = 5):
+        """Retrieve memories from Mem0 based on a query."""
+        if not app.state.mem0_manager.enabled:
+            raise HTTPException(status_code=503, detail="Mem0 integration not available")
+
+        memories = await app.state.mem0_manager.retrieve_memory(query, limit)
+        return {"memories": memories, "count": len(memories)}
+
+    # Add LiteLLM endpoints
+    @app.post("/llm/completion")
+    async def generate_completion(
+        messages: List[Dict[str, str]],
+        model: Optional[str] = None,
+        temperature: float = 0.7,
+        max_tokens: int = 1000
+    ):
+        """Generate a completion using LiteLLM."""
+        if not app.state.litellm_manager.enabled:
+            raise HTTPException(status_code=503, detail="LiteLLM integration not available")
+
+        try:
+            response = await app.state.litellm_manager.completion(
+                messages=messages,
+                model=model,
+                temperature=temperature,
+                max_tokens=max_tokens
+            )
+            return response
+        except Exception as e:
+            app.state.logfire_manager.log_error("Error generating completion", exception=e)
+            raise HTTPException(status_code=500, detail=str(e))
 
     # Add a frontend connection check endpoint
     @app.get("/connection/frontend")

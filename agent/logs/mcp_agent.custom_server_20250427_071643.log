@@ -1,0 +1,27 @@
+2025-04-27 07:16:43,806 - mcp_agent.custom_server - INFO - Logging to file: logs/mcp_agent.custom_server_20250427_071643.log
+2025-04-27 07:16:43,824 - mcp_agent.custom_server - INFO - Created FastAPI app for MCP Agent server
+2025-04-27 07:16:43,827 - mcp_agent.custom_server - INFO - Mem0 integration enabled: False
+2025-04-27 07:16:43,827 - mcp_agent.custom_server - INFO - LiteLLM integration enabled: False
+2025-04-27 07:16:43,828 - mcp_agent.custom_server - INFO - Logfire integration enabled: False
+2025-04-27 07:16:43,829 - mcp_agent.custom_server - INFO - Supabase integration enabled: False
+2025-04-27 07:16:44,632 - mcp_agent.custom_server - WARNING - Could not import graph from mcp_agent.agent: cannot import name 'LogfireLogger' from 'mcp_agent.integrations.logfire_integration' (/app/mcp_agent/integrations/logfire_integration.py)
+2025-04-27 07:16:44,633 - mcp_agent.custom_server - WARNING - LangGraph integration endpoints will not be available
+2025-04-27 07:16:44,634 - mcp_agent.custom_server - INFO - Including database status endpoints
+2025-04-27 07:16:44,635 - mcp_agent.custom_server - INFO - Available routes:
+2025-04-27 07:16:44,636 - mcp_agent.custom_server - INFO -   /openapi.json [HEAD,GET]
+2025-04-27 07:16:44,637 - mcp_agent.custom_server - INFO -   /docs [HEAD,GET]
+2025-04-27 07:16:44,637 - mcp_agent.custom_server - INFO -   /docs/oauth2-redirect [HEAD,GET]
+2025-04-27 07:16:44,638 - mcp_agent.custom_server - INFO -   /redoc [HEAD,GET]
+2025-04-27 07:16:44,639 - mcp_agent.custom_server - INFO -   /health [GET]
+2025-04-27 07:16:44,639 - mcp_agent.custom_server - INFO -   /routes [GET]
+2025-04-27 07:16:44,640 - mcp_agent.custom_server - INFO -   /integrations/status [GET]
+2025-04-27 07:16:44,641 - mcp_agent.custom_server - INFO -   /memory/store [POST]
+2025-04-27 07:16:44,641 - mcp_agent.custom_server - INFO -   /memory/retrieve [GET]
+2025-04-27 07:16:44,642 - mcp_agent.custom_server - INFO -   /llm/completion [POST]
+2025-04-27 07:16:44,642 - mcp_agent.custom_server - INFO -   /connection/frontend [GET]
+2025-04-27 07:16:44,643 - mcp_agent.custom_server - INFO -   / [GET]
+2025-04-27 07:16:44,644 - mcp_agent.custom_server - INFO -   /config/mode [POST]
+2025-04-27 07:16:44,644 - mcp_agent.custom_server - INFO -   /sentry-debug [GET]
+2025-04-27 07:16:44,645 - mcp_agent.custom_server - INFO -   /database/status [GET]
+2025-04-27 07:17:00,508 - mcp_agent.custom_server - INFO - LangGraph package is installed
+2025-04-27 07:17:00,518 - mcp_agent.custom_server - WARNING - Error importing graph from mcp_agent.agent: cannot import name 'LogfireLogger' from 'mcp_agent.integrations.logfire_integration' (/app/mcp_agent/integrations/logfire_integration.py)

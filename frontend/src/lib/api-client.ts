@@ -15,15 +15,24 @@ export class ApiClient {
   }
 
   /**
+   * Get the base URL for the API.
+   *
+   * @returns The base URL
+   */
+  protected getBaseUrl(): string {
+    return this.baseUrl;
+  }
+
+  /**
    * Make a fetch request with retry logic.
    *
    * @param path The API path to fetch
    * @param options The fetch options
-   * @returns The response data
+   * @returns The _response data
    */
   async fetchWithRetry(path: string, options: RequestInit = {}): Promise<any> {
-    let retries = 0;
-    let lastError: Error | null = null;
+    const retries = 0;
+    const lastError: Error | null = null;
 
     // Add timeout to fetch options if not already set
     if (!options.signal) {
@@ -40,9 +49,9 @@ export class ApiClient {
         const result = await this._doFetchWithRetry(path, options, retries, lastError);
         cleanup();
         return result;
-      } catch (error) {
+      } catch (_error) {
         cleanup();
-        throw error;
+        throw _error;
       }
     } else {
       // If signal is already set, just do the fetch
@@ -77,8 +86,8 @@ export class ApiClient {
           console.warn("Response is not valid JSON, returning text content");
           return { text: await response.text() };
         }
-      } catch (error) {
-        lastError = error as Error;
+      } catch (_error) {
+        lastError = _error as Error;
         retries++;
 
         console.warn(`Fetch attempt ${retries}/${this.maxRetries} failed: ${lastError.message}`);
@@ -149,9 +158,10 @@ export class ApiClient {
       };
     } catch (error) {
       console.error('Error getting health info:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       return {
         status: 'error',
-        error: error.message || 'Unknown error',
+        error: errorMessage,
         clientInfo: {
           timestamp: new Date().toISOString(),
           userAgent: navigator.userAgent,

@@ -1,19 +1,20 @@
 import type { Metadata } from "next";
-import { Inter, JetBrains_Mono } from "next/font/google";
+import localFont from "next/font/local";
 
 import "./globals.css";
-import Providers from "@/providers/Providers";
 import { ClientErrorBoundary } from "@/components/client-error-boundary";
 import { Toaster } from "@/components/ui/toaster";
+import Providers from "@/providers/Providers";
 
-const inter = Inter({
+// Use local fonts instead of Google Fonts to avoid network issues
+const inter = localFont({
+  src: '../fonts/Inter-Regular.woff2',
   variable: "--font-inter",
-  subsets: ["latin"],
 });
 
-const jetbrainsMono = JetBrains_Mono({
+const jetbrainsMono = localFont({
+  src: '../fonts/JetBrainsMono-Regular.woff2',
   variable: "--font-jetbrains",
-  subsets: ["latin"],
 });
 
 export const metadata: Metadata = {

@@ -1,0 +1,7 @@
+"use client";
+
+import { AgentManager } from "@/components/agents/agent-manager";
+
+export default function AgentsPage() {
+  return <AgentManager />;
+}

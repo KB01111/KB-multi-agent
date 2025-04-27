@@ -64,7 +64,7 @@ export const MCPAgent: FC = () => {
   // Default backend configuration
   const defaultConfig: Record<string, ServerConfig> = {
     "mcp-agent": {
-      url: process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8123",
+      url: process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8124",
       transport: "sse"
     }
   };
@@ -84,7 +84,7 @@ export const MCPAgent: FC = () => {
   useEffect(() => {
     const checkBackendStatus = async () => {
       try {
-        const backendUrl = (configsRef.current["mcp-agent"] as SSEConfig)?.url || "http://localhost:8123";
+        const backendUrl = (configsRef.current["mcp-agent"] as SSEConfig)?.url || "http://localhost:8124";
         const response = await fetch(`${backendUrl}/health`, {
           method: 'GET',
           headers: { 'Accept': 'application/json' }
@@ -218,7 +218,7 @@ export const MCPAgent: FC = () => {
           </div>
         );
       }
-      
+
       return null;
     },
   });

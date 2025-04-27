@@ -14,7 +14,7 @@ def main():
     """Run the langgraph server with the correct module structure."""
     parser = argparse.ArgumentParser(description="Run the MCP Agent server")
     parser.add_argument("--host", default="localhost", help="Host to run the server on")
-    parser.add_argument("--port", default="8123", help="Port to run the server on")
+    parser.add_argument("--port", default="8124", help="Port to run the server on")
     parser.add_argument("--custom", action="store_true", help="Use custom server with health endpoint")
     args = parser.parse_args()
 

@@ -1,27 +1,27 @@
 "use client";
 
 import React from "react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
 
-import { 
-  BookOpen, 
+import { useCoAg_ent  } from "@copilotkit/react-core";
+import { BookOpen, 
   MapPin, 
   Network, 
   Server, 
   ArrowRight, 
   Activity,
   Users,
-  Settings,
-  Database
-} from "lucide-react";
+  _Settings,
+  _Databas_e
+ } from "lucide-react";
+import Link from "next/link";
+import { useRout_er  } from "next/navigation";
 
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+
+import { Badg_e  } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
-import { useCoAgent } from "@copilotkit/react-core";
-import { AvailableAgents } from "@/lib/available-agents";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitl_e  } from "@/components/ui/card";
+import { Progr_ess  } from "@/components/ui/progress";
+import { AvailableAg_ents  } from "@/lib/available-agents";
 
 export function Dashboard() {
   const router = useRouter();
@@ -59,8 +59,8 @@ export function Dashboard() {
               Users
             </Button>
             <Button variant="outline" size="sm" className="gap-1">
-              <Settings className="h-4 w-4" />
-              Settings
+              <_Settings className="h-4 w-4" />
+              _Settings
             </Button>
           </div>
         </div>
@@ -102,7 +102,7 @@ export function Dashboard() {
               <CardTitle className="text-sm font-medium">
                 Knowledge Entities
               </CardTitle>
-              <Database className="h-4 w-4 text-muted-foreground" />
+              <_Database className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
@@ -135,9 +135,9 @@ export function Dashboard() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
-                Database
+                _Database
               </CardTitle>
-              <Database className="h-4 w-4 text-muted-foreground" />
+              <_Database className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
               <div className="flex items-center gap-2">

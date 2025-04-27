@@ -1,0 +1,249 @@
+"""
+Logfire integration for the MCP Agent.
+Provides structured logging functionality using Logfire.
+"""
+
+import os
+import logging
+import sys
+import traceback
+from typing import Dict, Any, Optional, Union
+
+# Configure basic logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+# Try to import logfire, but provide a fallback if it's not installed
+try:
+    import logfire
+    LOGFIRE_AVAILABLE = True
+except ImportError:
+    logger.warning("Logfire module not found. Using fallback logging.")
+    LOGFIRE_AVAILABLE = False
+    logfire = None
+
+# Automatically load environment variables if python-dotenv is installed
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    logger.warning("python-dotenv not found, skipping loading .env file")
+
+class LogfireManager:
+    """
+    Integration with Logfire for structured logging.
+    Provides methods to log events, errors, and metrics with rich context.
+    """
+
+    def __init__(self):
+        """Initialize the Logfire manager."""
+        self.enabled = LOGFIRE_AVAILABLE and os.getenv("LOGGING_ENABLED", "true").lower() == "true"
+        self.project = os.getenv("LOGFIRE_PROJECT", "kb-multi-agent")
+        self.token = os.getenv("LOGFIRE_TOKEN", "")
+        
+        if not self.enabled:
+            logger.warning("Logfire not available or logging disabled. Using fallback logging.")
+            return
+            
+        if not self.token:
+            logger.warning("Logfire token not found. Using fallback logging.")
+            self.enabled = False
+            return
+            
+        try:
+            # Initialize Logfire
+            logfire.init(
+                project=self.project,
+                token=self.token,
+                capture_logs=True,
+                capture_stdout=True,
+                capture_stderr=True
+            )
+            logger.info(f"Logfire initialized for project: {self.project}")
+        except Exception as e:
+            logger.error(f"Failed to initialize Logfire: {e}")
+            self.enabled = False
+
+    def log(self, 
+            message: str, 
+            level: str = "info", 
+            context: Optional[Dict[str, Any]] = None,
+            exception: Optional[Exception] = None) -> None:
+        """
+        Log a message with optional context and exception.
+        
+        Args:
+            message: The log message
+            level: Log level (debug, info, warning, error, critical)
+            context: Optional context dictionary
+            exception: Optional exception to log
+        """
+        if not self.enabled:
+            self._fallback_log(message, level, context, exception)
+            return
+            
+        try:
+            ctx = context or {}
+            
+            if level == "debug":
+                logfire.debug(message, **ctx)
+            elif level == "info":
+                logfire.info(message, **ctx)
+            elif level == "warning":
+                logfire.warning(message, **ctx)
+            elif level == "error":
+                if exception:
+                    logfire.exception(message, exc_info=exception, **ctx)
+                else:
+                    logfire.error(message, **ctx)
+            elif level == "critical":
+                logfire.critical(message, **ctx)
+            else:
+                logfire.info(message, **ctx)
+        except Exception as e:
+            logger.error(f"Error logging to Logfire: {e}")
+            self._fallback_log(message, level, context, exception)
+
+    def _fallback_log(self, 
+                     message: str, 
+                     level: str = "info", 
+                     context: Optional[Dict[str, Any]] = None,
+                     exception: Optional[Exception] = None) -> None:
+        """
+        Fallback logging method when Logfire is not available.
+        
+        Args:
+            message: The log message
+            level: Log level (debug, info, warning, error, critical)
+            context: Optional context dictionary
+            exception: Optional exception to log
+        """
+        ctx_str = f" Context: {context}" if context else ""
+        
+        if level == "debug":
+            logger.debug(f"{message}{ctx_str}")
+        elif level == "info":
+            logger.info(f"{message}{ctx_str}")
+        elif level == "warning":
+            logger.warning(f"{message}{ctx_str}")
+        elif level == "error":
+            if exception:
+                logger.error(f"{message}{ctx_str}", exc_info=exception)
+            else:
+                logger.error(f"{message}{ctx_str}")
+        elif level == "critical":
+            logger.critical(f"{message}{ctx_str}")
+        else:
+            logger.info(f"{message}{ctx_str}")
+
+    def log_request(self, 
+                   endpoint: str, 
+                   method: str, 
+                   status_code: int, 
+                   duration_ms: float,
+                   request_data: Optional[Dict[str, Any]] = None,
+                   response_data: Optional[Dict[str, Any]] = None,
+                   user_id: Optional[str] = None) -> None:
+        """
+        Log an API request with details.
+        
+        Args:
+            endpoint: The API endpoint
+            method: HTTP method (GET, POST, etc.)
+            status_code: HTTP status code
+            duration_ms: Request duration in milliseconds
+            request_data: Optional request data
+            response_data: Optional response data
+            user_id: Optional user ID
+        """
+        context = {
+            "endpoint": endpoint,
+            "method": method,
+            "status_code": status_code,
+            "duration_ms": duration_ms
+        }
+        
+        if request_data:
+            context["request_data"] = request_data
+            
+        if response_data:
+            context["response_data"] = response_data
+            
+        if user_id:
+            context["user_id"] = user_id
+            
+        level = "info" if 200 <= status_code < 400 else "error"
+        message = f"{method} {endpoint} - {status_code} ({duration_ms:.2f}ms)"
+        
+        self.log(message, level, context)
+
+    def log_error(self, 
+                 message: str, 
+                 exception: Optional[Exception] = None,
+                 context: Optional[Dict[str, Any]] = None) -> None:
+        """
+        Log an error with optional exception and context.
+        
+        Args:
+            message: Error message
+            exception: Optional exception
+            context: Optional context dictionary
+        """
+        ctx = context or {}
+        
+        if exception:
+            exc_type, exc_value, exc_traceback = sys.exc_info()
+            if exc_traceback:
+                ctx["traceback"] = "".join(traceback.format_tb(exc_traceback))
+                
+            ctx["exception_type"] = exception.__class__.__name__
+            ctx["exception_message"] = str(exception)
+            
+        self.log(message, "error", ctx, exception)
+
+    def log_event(self, 
+                 event_name: str, 
+                 event_data: Optional[Dict[str, Any]] = None,
+                 user_id: Optional[str] = None) -> None:
+        """
+        Log an application event.
+        
+        Args:
+            event_name: Name of the event
+            event_data: Optional event data
+            user_id: Optional user ID
+        """
+        context = {
+            "event": event_name
+        }
+        
+        if event_data:
+            context["event_data"] = event_data
+            
+        if user_id:
+            context["user_id"] = user_id
+            
+        self.log(f"Event: {event_name}", "info", context)
+
+    def log_metric(self, 
+                  metric_name: str, 
+                  value: Union[int, float],
+                  unit: Optional[str] = None,
+                  context: Optional[Dict[str, Any]] = None) -> None:
+        """
+        Log a metric value.
+        
+        Args:
+            metric_name: Name of the metric
+            value: Metric value
+            unit: Optional unit of measurement
+            context: Optional context dictionary
+        """
+        ctx = context or {}
+        ctx["metric"] = metric_name
+        ctx["value"] = value
+        
+        if unit:
+            ctx["unit"] = unit
+            
+        self.log(f"Metric: {metric_name} = {value}{f' {unit}' if unit else ''}", "info", ctx)

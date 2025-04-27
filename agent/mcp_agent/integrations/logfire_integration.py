@@ -1,245 +1,284 @@
 """
 Logfire integration for the MCP Agent.
-Provides logging and tracing capabilities for the agent.
+Provides structured logging functionality using Logfire.
 """
 
 import os
 import logging
-from typing import Optional, Dict, Any, List, Union
+import sys
+import traceback
+from typing import Dict, Any, Optional, Union
 from contextlib import contextmanager
+
+# Configure basic logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # Try to import logfire, but provide a fallback if it's not installed
 try:
     import logfire
     LOGFIRE_AVAILABLE = True
 except ImportError:
-    LOGFIRE_AVAILABLE = False
-    logger = logging.getLogger(__name__)
     logger.warning("Logfire module not found. Using fallback logging.")
+    LOGFIRE_AVAILABLE = False
+    logfire = None
 
-# Configure basic logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+# Automatically load environment variables if python-dotenv is installed
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    logger.warning("python-dotenv not found, skipping loading .env file")
 
 class LogfireLogger:
     """
-    Integration with Logfire for logging and tracing.
-    Provides methods to log events, errors, and create spans for tracing.
+    Logger class that provides span context management and logging methods.
+    This class is used by the agent to log events and errors with context.
     """
 
-    def __init__(self, project_name: Optional[str] = None, enabled: bool = True):
+    def __init__(self):
+        """Initialize the logger with a LogfireManager instance."""
+        self.manager = LogfireManager()
+
+    def log_event(self, event_name: str, context: Optional[Dict[str, Any]] = None):
+        """Log an event with context."""
+        self.manager.log_event(event_name, context)
+
+    def log_error(self, exception: Exception, context: Optional[Dict[str, Any]] = None):
+        """Log an error with context."""
+        self.manager.log_error(str(exception), exception, context)
+
+    @contextmanager
+    def span(self, span_name: str, context: Optional[Dict[str, Any]] = None):
+        """Context manager for creating spans."""
+        try:
+            # Log span start
+            self.manager.log_event(f"{span_name}_started", context)
+            yield
+            # Log span end
+            self.manager.log_event(f"{span_name}_completed", context)
+        except Exception as e:
+            # Log span error
+            error_ctx = context.copy() if context else {}
+            error_ctx["error"] = str(e)
+            self.manager.log_error(f"{span_name}_failed", e, error_ctx)
+            raise
+
+class LogfireManager:
+    """
+    Integration with Logfire for structured logging.
+    Provides methods to log events, errors, and metrics with rich context.
+    """
+
+    def __init__(self):
+        """Initialize the Logfire manager."""
+        self.enabled = LOGFIRE_AVAILABLE and os.getenv("LOGGING_ENABLED", "true").lower() == "true"
+        self.project = os.getenv("LOGFIRE_PROJECT", "kb-multi-agent")
+        self.token = os.getenv("LOGFIRE_TOKEN", "")
+
+        if not self.enabled:
+            logger.warning("Logfire not available or logging disabled. Using fallback logging.")
+            return
+
+        if not self.token:
+            logger.warning("Logfire token not found. Using fallback logging.")
+            self.enabled = False
+            return
+
+        try:
+            # Initialize Logfire
+            logfire.init(
+                project=self.project,
+                token=self.token,
+                capture_logs=True,
+                capture_stdout=True,
+                capture_stderr=True
+            )
+            logger.info(f"Logfire initialized for project: {self.project}")
+        except Exception as e:
+            logger.error(f"Failed to initialize Logfire: {e}")
+            self.enabled = False
+
+    def log(self,
+            message: str,
+            level: str = "info",
+            context: Optional[Dict[str, Any]] = None,
+            exception: Optional[Exception] = None) -> None:
         """
-        Initialize the Logfire logger.
+        Log a message with optional context and exception.
 
         Args:
-            project_name: Name of the Logfire project. Defaults to LOGFIRE_PROJECT env var or 'kb-multi-agent'.
-            enabled: Whether Logfire logging is enabled. Defaults to True.
+            message: The log message
+            level: Log level (debug, info, warning, error, critical)
+            context: Optional context dictionary
+            exception: Optional exception to log
         """
-        self.project_name = project_name or os.getenv("LOGFIRE_PROJECT", "kb-multi-agent")
-        # Only enable if logfire is available and configured
-        self.enabled = enabled and LOGFIRE_AVAILABLE and self._check_logfire_configured()
+        if not self.enabled:
+            self._fallback_log(message, level, context, exception)
+            return
 
-        if self.enabled:
-            try:
-                # Initialize Logfire
-                logfire.configure(
-                    project=self.project_name,
-                    service="mcp-agent",
-                )
-                logger.info(f"Logfire initialized for project: {self.project_name}")
-            except Exception as e:
-                logger.warning(f"Failed to initialize Logfire: {e}")
-                self.enabled = False
+        try:
+            ctx = context or {}
 
-    def _check_logfire_configured(self) -> bool:
-        """Check if Logfire is configured in the environment."""
-        # If logfire is not available, return False
-        if not LOGFIRE_AVAILABLE:
-            return False
+            if level == "debug":
+                logfire.debug(message, **ctx)
+            elif level == "info":
+                logfire.info(message, **ctx)
+            elif level == "warning":
+                logfire.warning(message, **ctx)
+            elif level == "error":
+                if exception:
+                    logfire.exception(message, exc_info=exception, **ctx)
+                else:
+                    logfire.error(message, **ctx)
+            elif level == "critical":
+                logfire.critical(message, **ctx)
+            else:
+                logfire.info(message, **ctx)
+        except Exception as e:
+            logger.error(f"Error logging to Logfire: {e}")
+            self._fallback_log(message, level, context, exception)
 
-        # Check for Logfire configuration file or environment variables
-        if os.path.exists(os.path.expanduser("~/.logfire/default.toml")):
-            return True
-        if os.getenv("LOGFIRE_TOKEN"):
-            return True
-        return False
-
-    def log_event(self, event_name: str, data: Optional[Dict[str, Any]] = None) -> None:
+    def _fallback_log(self,
+                     message: str,
+                     level: str = "info",
+                     context: Optional[Dict[str, Any]] = None,
+                     exception: Optional[Exception] = None) -> None:
         """
-        Log an event to Logfire.
+        Fallback logging method when Logfire is not available.
+
+        Args:
+            message: The log message
+            level: Log level (debug, info, warning, error, critical)
+            context: Optional context dictionary
+            exception: Optional exception to log
+        """
+        ctx_str = f" Context: {context}" if context else ""
+
+        if level == "debug":
+            logger.debug(f"{message}{ctx_str}")
+        elif level == "info":
+            logger.info(f"{message}{ctx_str}")
+        elif level == "warning":
+            logger.warning(f"{message}{ctx_str}")
+        elif level == "error":
+            if exception:
+                logger.error(f"{message}{ctx_str}", exc_info=exception)
+            else:
+                logger.error(f"{message}{ctx_str}")
+        elif level == "critical":
+            logger.critical(f"{message}{ctx_str}")
+        else:
+            logger.info(f"{message}{ctx_str}")
+
+    def log_request(self,
+                   endpoint: str,
+                   method: str,
+                   status_code: int,
+                   duration_ms: float,
+                   request_data: Optional[Dict[str, Any]] = None,
+                   response_data: Optional[Dict[str, Any]] = None,
+                   user_id: Optional[str] = None) -> None:
+        """
+        Log an API request with details.
+
+        Args:
+            endpoint: The API endpoint
+            method: HTTP method (GET, POST, etc.)
+            status_code: HTTP status code
+            duration_ms: Request duration in milliseconds
+            request_data: Optional request data
+            response_data: Optional response data
+            user_id: Optional user ID
+        """
+        context = {
+            "endpoint": endpoint,
+            "method": method,
+            "status_code": status_code,
+            "duration_ms": duration_ms
+        }
+
+        if request_data:
+            context["request_data"] = request_data
+
+        if response_data:
+            context["response_data"] = response_data
+
+        if user_id:
+            context["user_id"] = user_id
+
+        level = "info" if 200 <= status_code < 400 else "error"
+        message = f"{method} {endpoint} - {status_code} ({duration_ms:.2f}ms)"
+
+        self.log(message, level, context)
+
+    def log_error(self,
+                 message: str,
+                 exception: Optional[Exception] = None,
+                 context: Optional[Dict[str, Any]] = None) -> None:
+        """
+        Log an error with optional exception and context.
+
+        Args:
+            message: Error message
+            exception: Optional exception
+            context: Optional context dictionary
+        """
+        ctx = context or {}
+
+        if exception:
+            exc_type, exc_value, exc_traceback = sys.exc_info()
+            if exc_traceback:
+                ctx["traceback"] = "".join(traceback.format_tb(exc_traceback))
+
+            ctx["exception_type"] = exception.__class__.__name__
+            ctx["exception_message"] = str(exception)
+
+        self.log(message, "error", ctx, exception)
+
+    def log_event(self,
+                 event_name: str,
+                 event_data: Optional[Dict[str, Any]] = None,
+                 user_id: Optional[str] = None) -> None:
+        """
+        Log an application event.
 
         Args:
             event_name: Name of the event
-            data: Additional data to log with the event
+            event_data: Optional event data
+            user_id: Optional user ID
         """
-        if not self.enabled:
-            # Fallback to standard logging
-            logger.info(f"Event: {event_name} - Data: {data}")
-            return
-
-        try:
-            logfire.log(event_name, **(data or {}))
-        except Exception as e:
-            logger.warning(f"Failed to log event to Logfire: {e}")
-
-    def log_error(self, error: Exception, context: Optional[Dict[str, Any]] = None) -> None:
-        """
-        Log an error to Logfire.
-
-        Args:
-            error: The exception to log
-            context: Additional context data
-        """
-        if not self.enabled:
-            # Fallback to standard logging
-            logger.error(f"Error: {error} - Context: {context}")
-            return
-
-        try:
-            logfire.error(
-                error,
-                error_message=str(error),
-                **(context or {})
-            )
-        except Exception as e:
-            logger.warning(f"Failed to log error to Logfire: {e}")
-
-    @contextmanager
-    def span(self, name: str, attributes: Optional[Dict[str, Any]] = None):
-        """
-        Create a span for tracing.
-
-        Args:
-            name: Name of the span
-            attributes: Additional attributes for the span
-        """
-        if not self.enabled:
-            # Log span start/end with standard logging
-            logger.info(f"Span start: {name} - Attributes: {attributes}")
-            yield None
-            logger.info(f"Span end: {name}")
-            return
-
-        try:
-            with logfire.span(name, **(attributes or {})) as span:
-                yield span
-        except Exception as e:
-            logger.warning(f"Failed to create Logfire span: {e}")
-            yield None
-
-    def log_agent_request(self,
-                         agent_id: str,
-                         user_input: str,
-                         metadata: Optional[Dict[str, Any]] = None) -> None:
-        """
-        Log an agent request.
-
-        Args:
-            agent_id: ID of the agent
-            user_input: User input text
-            metadata: Additional metadata
-        """
-        data = {
-            "agent_id": agent_id,
-            "user_input": user_input,
-            **(metadata or {})
+        context = {
+            "event": event_name
         }
-        self.log_event("agent_request", data)
 
-    def log_agent_response(self,
-                          agent_id: str,
-                          response: str,
-                          metadata: Optional[Dict[str, Any]] = None) -> None:
+        if event_data:
+            context["event_data"] = event_data
+
+        if user_id:
+            context["user_id"] = user_id
+
+        self.log(f"Event: {event_name}", "info", context)
+
+    def log_metric(self,
+                  metric_name: str,
+                  value: Union[int, float],
+                  unit: Optional[str] = None,
+                  context: Optional[Dict[str, Any]] = None) -> None:
         """
-        Log an agent response.
+        Log a metric value.
 
         Args:
-            agent_id: ID of the agent
-            response: Agent response text
-            metadata: Additional metadata
+            metric_name: Name of the metric
+            value: Metric value
+            unit: Optional unit of measurement
+            context: Optional context dictionary
         """
-        data = {
-            "agent_id": agent_id,
-            "response": response,
-            **(metadata or {})
-        }
-        self.log_event("agent_response", data)
+        ctx = context or {}
+        ctx["metric"] = metric_name
+        ctx["value"] = value
 
-    def log_tool_call(self,
-                     tool_name: str,
-                     inputs: Dict[str, Any],
-                     metadata: Optional[Dict[str, Any]] = None) -> None:
-        """
-        Log a tool call.
+        if unit:
+            ctx["unit"] = unit
 
-        Args:
-            tool_name: Name of the tool
-            inputs: Tool inputs
-            metadata: Additional metadata
-        """
-        data = {
-            "tool_name": tool_name,
-            "inputs": inputs,
-            **(metadata or {})
-        }
-        self.log_event("tool_call", data)
-
-    def log_tool_result(self,
-                       tool_name: str,
-                       result: Any,
-                       metadata: Optional[Dict[str, Any]] = None) -> None:
-        """
-        Log a tool result.
-
-        Args:
-            tool_name: Name of the tool
-            result: Tool result
-            metadata: Additional metadata
-        """
-        data = {
-            "tool_name": tool_name,
-            "result": str(result),
-            **(metadata or {})
-        }
-        self.log_event("tool_result", data)
-
-    def log_llm_call(self,
-                    model: str,
-                    prompt: Union[str, List[Dict[str, str]]],
-                    metadata: Optional[Dict[str, Any]] = None) -> None:
-        """
-        Log an LLM call.
-
-        Args:
-            model: Name of the model
-            prompt: Prompt text or messages
-            metadata: Additional metadata
-        """
-        # Convert prompt to string if it's a list of messages
-        prompt_str = prompt if isinstance(prompt, str) else str(prompt)
-
-        data = {
-            "model": model,
-            "prompt": prompt_str,
-            **(metadata or {})
-        }
-        self.log_event("llm_call", data)
-
-    def log_llm_response(self,
-                        model: str,
-                        response: str,
-                        metadata: Optional[Dict[str, Any]] = None) -> None:
-        """
-        Log an LLM response.
-
-        Args:
-            model: Name of the model
-            response: LLM response text
-            metadata: Additional metadata
-        """
-        data = {
-            "model": model,
-            "response": response,
-            **(metadata or {})
-        }
-        self.log_event("llm_response", data)
+        self.log(f"Metric: {metric_name} = {value}{f' {unit}' if unit else ''}", "info", ctx)

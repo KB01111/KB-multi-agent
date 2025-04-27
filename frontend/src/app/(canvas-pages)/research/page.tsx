@@ -1,16 +1,17 @@
 "use client";
 
 import { useEffect } from "react";
-import { useRouter } from "next/navigation";
 
 import { useCoAgent } from "@copilotkit/react-core";
+import { useRouter } from "next/navigation";
+
 
 import { AIResearchAgent } from "@/components/agents/researcher";
 import { AvailableAgents } from "@/lib/available-agents";
 
 export default function ResearchPage() {
   const router = useRouter();
-  
+
   // Get agent state
   const { running, start } = useCoAgent({
     name: AvailableAgents.RESEARCH_AGENT,

@@ -3,9 +3,8 @@
 import type { ReactNode } from "react";
 import React, { useState, useEffect } from "react";
 
-import { useCoAgent } from "@copilotkit/react-core";
-import {
-  MapPin,
+import { useCoAgent  } from "@copilotkit/react-core";
+import { MapPin,
   BookOpen,
   Server,
   Network,
@@ -19,19 +18,17 @@ import {
   HelpCircle,
   Users,
   Brain,
-  GitBranch,
   Workflow
-} from "lucide-react";
+ } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { useTheme } from "next-themes";
+import { usePathname  } from "next/navigation";
+import { useTheme  } from "next-themes";
 
 
-import { HelpModal } from "@/components/help-modal";
+import { HelpModal  } from "@/components/help-modal";
 import { Button } from "@/components/ui/button";
-import {
-  Sidebar,
+import { Sidebar,
   SidebarContent,
   SidebarFooter,
   SidebarGroup,
@@ -40,9 +37,9 @@ import {
   SidebarMenuItem,
   SidebarMenu,
   useSidebar
-} from "@/components/ui/sidebar";
-import { AvailableAgents } from "@/lib/available-agents";
-import { useMounted } from "@/lib/use-mounted";
+ } from "@/components/ui/sidebar";
+import { AvailableAgents  } from "@/lib/available-agents";
+import { useMounted  } from "@/lib/use-mounted";
 import { cn } from "@/lib/utils";
 
 // Custom SidebarMenuItem that accepts icon and isActive props
@@ -186,7 +183,7 @@ export function EnhancedSidebar({
 
               <EnhancedSidebarMenuItem
                 icon={<MessageSquare className="h-5 w-5" />}
-                isActive={pathname === "/chat" || pathname.includes("/chat")}
+                isActive={pathname === "/chat" || pathname?.includes("/chat")}
                 className="transition-all-fast hover-scale"
               >
                 <Link href="/chat" className="flex w-full">

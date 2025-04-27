@@ -3,7 +3,6 @@
 import type { FC } from "react";
 
 import { CopilotChat } from "@copilotkit/react-ui";
-import "@copilotkit/react-ui/styles.css";
 import {
   ActivityIcon,
   Loader2,

@@ -1,27 +1,28 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef, useState  } from "react";
 
-import { useCoAgent, useCopilotAction } from "@copilotkit/react-core";
+import { useCoAgent, useCopilotAction  } from "@copilotkit/react-core";
 import type { LatLngTuple } from "leaflet";
-import { Icon } from "leaflet";
-import { CheckCircle, Loader2, XCircle, MapPin, Star } from "lucide-react";
+import { Icon, DivIcon  } from "leaflet";
+import { CheckCircle, Loader2, XCircle, MapPin, Star  } from "lucide-react";
 import dynamic from "next/dynamic";
-import { Marker, Popup, TileLayer } from "react-leaflet";
-import "leaflet-defaulticon-compatibility";
-import "leaflet-defaulticon-compatibility/dist/leaflet-defaulticon-compatibility.css";
-import "leaflet/dist/leaflet.css";
+import { Marker, Popup, TileLayer  } from "react-leaflet";
 
 import * as Skeletons from "@/components/skeletons";
 import { Button } from "@/components/ui/button";
-import { AvailableAgents } from "@/lib/available-agents";
+import { AvailableAgents  } from "@/lib/available-agents";
 import { cn } from "@/lib/utils";
 
-const customIcon = new Icon({
-  iconUrl: "/map-marker.svg",
-  iconSize: [40, 40],
-  iconAnchor: [20, 20],
-  popupAnchor: [0, -20],
+// Create a custom DivIcon instead of using the default Icon
+const customIcon = new DivIcon({
+  className: 'custom-marker-icon',
+  html: `<div style="width: 36px; height: 36px; background-color: hsl(var(--primary, 220 70% 50%)); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);">
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+  </div>`,
+  iconSize: [36, 36],
+  iconAnchor: [18, 18],
+  popupAnchor: [0, -18],
 });
 
 interface Place {

@@ -1,10 +1,12 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { TeamManager } from '@/components/team-manager';
-import { AgentConfig } from '@/components/agent-creation-form';
-import { useToast } from '@/components/ui/use-toast';
+
 import { Loader2 } from 'lucide-react';
+
+import type { AgentConfig } from '@/components/agent-creation-form';
+import { TeamManager } from '@/components/team-manager';
+import { useToast } from '@/components/ui/use-toast';
 import { ApiClient } from '@/lib/api-client';
 
 export default function TeamsPage() {
@@ -31,7 +33,8 @@ export default function TeamsPage() {
             enableVoice: agent.enable_voice || false,
             enableParallel: agent.enable_parallel || false,
             enableLiteLLM: agent.enable_litellm || false,
-            tools: agent.tools || []
+            tools: agent.tools || [],
+            isTeamMember: agent.is_team_member || false
           })));
         } else {
           console.error('Invalid response format:', response);

@@ -1,16 +1,17 @@
 "use client";
 
 import { useEffect } from "react";
-import { useRouter } from "next/navigation";
 
 import { useCoAgent } from "@copilotkit/react-core";
+import { useRouter } from "next/navigation";
+
 
 import { TravelAgent } from "@/components/agents/travel";
 import { AvailableAgents } from "@/lib/available-agents";
 
 export default function TravelPage() {
   const router = useRouter();
-  
+
   // Get agent state
   const { running, start } = useCoAgent({
     name: AvailableAgents.TRAVEL_AGENT,

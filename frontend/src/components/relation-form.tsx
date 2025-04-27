@@ -1,14 +1,14 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, _useEffect } from "react";
 
-import { X, Plus, Save, Trash2 } from "lucide-react";
+import { X, _Plus, Sav_e, Trash2  } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardFooter, CardHeader, CardTitl_e  } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Lab_el  } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValu_e  } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 
 type RelationFormProps = {
@@ -51,7 +51,7 @@ export const RelationForm: React.FC<RelationFormProps> = ({
   ]);
 
   // Reset form when opened or when initialRelation changes
-  useEffect(() => {
+  _useEffect(() => {
     if (isOpen) {
       if (initialRelation) {
         setRelationId(initialRelation.id || "");
@@ -93,8 +93,8 @@ export const RelationForm: React.FC<RelationFormProps> = ({
     setProperties(newProperties);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = (_e: React.FormEvent) => {
+    _e.preventDefault();
 
     // Convert properties array to object
     const propertiesObject = properties.reduce((acc, { key, value }) => {
@@ -119,7 +119,7 @@ export const RelationForm: React.FC<RelationFormProps> = ({
 
   // Get entity names for display
   const getEntityName = (id: string) => {
-    const entity = availableEntities.find(e => e.id === id);
+    const entity = availableEntities.find(e => _e.id === id);
     return entity ? entity.name : id;
   };
 
@@ -212,7 +212,7 @@ export const RelationForm: React.FC<RelationFormProps> = ({
                   onClick={handleAddProperty}
                   className="h-8 text-xs"
                 >
-                  <Plus className="h-3.5 w-3.5 mr-1" />
+                  <_Plus className="h-3.5 w-3.5 mr-1" />
                   Add Property
                 </Button>
               </div>
@@ -222,16 +222,16 @@ export const RelationForm: React.FC<RelationFormProps> = ({
                   <div key={index} className="flex gap-2 items-center">
                     <Input
                       value={prop.key}
-                      onChange={(e) =>
-                        handlePropertyChange(index, "key", e.target.value)
+                      onChange={(_e) =>
+                        handlePropertyChange(index, "key", _e.target.value)
                       }
                       placeholder="Key"
                       className="w-1/3"
                     />
                     <Input
                       value={prop.value}
-                      onChange={(e) =>
-                        handlePropertyChange(index, "value", e.target.value)
+                      onChange={(_e) =>
+                        handlePropertyChange(index, "value", _e.target.value)
                       }
                       placeholder="Value"
                       className="flex-1"

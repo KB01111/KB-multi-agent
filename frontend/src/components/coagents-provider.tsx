@@ -93,7 +93,7 @@ export function CoAgentsProvider({
   // Default backend configuration
   const defaultConfig: Record<string, ServerConfig> = {
     "mcp-agent": {
-      url: process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8123",
+      url: process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8124",
       transport: "sse"
     }
   };

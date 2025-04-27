@@ -1,0 +1,120 @@
+# version: '3.8' - removed as it's obsolete
+
+services:
+  # Frontend Next.js application
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_BACKEND_URL=http://backend:8124
+      - NEXT_PUBLIC_COPILOT_CLOUD_API_KEY=${COPILOT_CLOUD_API_KEY}
+      - NODE_ENV=development
+    volumes:
+      - ./frontend:/app
+      - frontend_node_modules:/app/node_modules
+    depends_on:
+      - backend
+    networks:
+      - kb-network
+    restart: unless-stopped
+    # Enable hot reloading for development
+    develop:
+      watch:
+        - path: ./frontend/package.json
+          action: rebuild
+        - path: ./frontend
+          target: /app
+          action: sync
+          ignore:
+            - node_modules/
+            - .next/
+
+  # Backend LangGraph/Python application
+  backend:
+    build:
+      context: ./agent
+      dockerfile: Dockerfile
+    ports:
+      - "8124:8124"
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - FRAMEWORK=${FRAMEWORK:-hybrid}
+      - DEFAULT_MODEL=${DEFAULT_MODEL:-gpt-4o}
+      - REDIS_ENABLED=true
+      - REDIS_URL=redis://redis:6379/0
+      - DATABASE_BACKEND=${DATABASE_BACKEND:-postgres}
+      - DATABASE_URL=${DATABASE_URL:-postgresql://postgres:postgres@postgres:5432/kb_multi_agent}
+      - SUPABASE_URL=${SUPABASE_URL:-}
+      - SUPABASE_SERVICE_KEY=${SUPABASE_SERVICE_KEY:-}
+      - LOGFIRE_PROJECT=${LOGFIRE_PROJECT:-kb-multi-agent}
+      - LOGFIRE_TOKEN=${LOGFIRE_TOKEN:-}
+      - LOGGING_ENABLED=${LOGGING_ENABLED:-true}
+    volumes:
+      - ./agent:/app
+      - backend_venv:/app/.venv
+    depends_on:
+      - redis
+    networks:
+      - kb-network
+    restart: unless-stopped
+    # Enable hot reloading for development
+    develop:
+      watch:
+        - path: ./agent/pyproject.toml
+          action: rebuild
+        - path: ./agent
+          target: /app
+          action: sync
+          ignore:
+            - __pycache__/
+            - .venv/
+
+  # Redis for caching and session management
+  redis:
+    image: redis:alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - kb-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # PostgreSQL database (optional, can be disabled if using Supabase)
+  postgres:
+    image: postgres:14-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER:-postgres}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-postgres}
+      - POSTGRES_DB=${POSTGRES_DB:-kb_multi_agent}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./scripts/init-postgres.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - kb-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+networks:
+  kb-network:
+    driver: bridge
+
+volumes:
+  frontend_node_modules:
+  backend_venv:
+  redis-data:
+  postgres-data:

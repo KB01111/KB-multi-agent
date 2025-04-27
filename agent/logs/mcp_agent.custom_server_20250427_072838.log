@@ -1,0 +1,24 @@
+2025-04-27 07:28:38,188 - mcp_agent.custom_server - INFO - Logging to file: logs/mcp_agent.custom_server_20250427_072838.log
+2025-04-27 07:28:38,200 - mcp_agent.custom_server - INFO - Created FastAPI app for MCP Agent server
+2025-04-27 07:28:38,205 - mcp_agent.custom_server - INFO - Mem0 integration enabled: False
+2025-04-27 07:28:38,206 - mcp_agent.custom_server - INFO - LiteLLM integration enabled: False
+2025-04-27 07:28:38,207 - mcp_agent.custom_server - INFO - Logfire integration enabled: False
+2025-04-27 07:28:38,207 - mcp_agent.custom_server - INFO - Supabase integration enabled: False
+2025-04-27 07:28:38,778 - mcp_agent.custom_server - INFO - Including database status endpoints
+2025-04-27 07:28:38,778 - mcp_agent.custom_server - INFO - Available routes:
+2025-04-27 07:28:38,779 - mcp_agent.custom_server - INFO -   /openapi.json [GET,HEAD]
+2025-04-27 07:28:38,780 - mcp_agent.custom_server - INFO -   /docs [GET,HEAD]
+2025-04-27 07:28:38,780 - mcp_agent.custom_server - INFO -   /docs/oauth2-redirect [GET,HEAD]
+2025-04-27 07:28:38,781 - mcp_agent.custom_server - INFO -   /redoc [GET,HEAD]
+2025-04-27 07:28:38,781 - mcp_agent.custom_server - INFO -   /health [GET]
+2025-04-27 07:28:38,782 - mcp_agent.custom_server - INFO -   /routes [GET]
+2025-04-27 07:28:38,782 - mcp_agent.custom_server - INFO -   /integrations/status [GET]
+2025-04-27 07:28:38,783 - mcp_agent.custom_server - INFO -   /memory/store [POST]
+2025-04-27 07:28:38,783 - mcp_agent.custom_server - INFO -   /memory/retrieve [GET]
+2025-04-27 07:28:38,783 - mcp_agent.custom_server - INFO -   /llm/completion [POST]
+2025-04-27 07:28:38,784 - mcp_agent.custom_server - INFO -   /connection/frontend [GET]
+2025-04-27 07:28:38,784 - mcp_agent.custom_server - INFO -   / [GET]
+2025-04-27 07:28:38,785 - mcp_agent.custom_server - INFO -   /config/mode [POST]
+2025-04-27 07:28:38,785 - mcp_agent.custom_server - INFO -   /v1/graphs/mcp-agent/invoke [POST]
+2025-04-27 07:28:38,786 - mcp_agent.custom_server - INFO -   /sentry-debug [GET]
+2025-04-27 07:28:38,786 - mcp_agent.custom_server - INFO -   /database/status [GET]

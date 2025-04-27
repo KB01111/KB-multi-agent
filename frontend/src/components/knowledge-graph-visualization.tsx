@@ -90,6 +90,7 @@ export const KnowledgeGraphVisualization: React.FC<KnowledgeGraphVisualizationPr
         width: 1.5,
         color: { inherit: 'from' },
         smooth: {
+          enabled: true,
           type: 'continuous',
           roundness: 0.2,
         },
@@ -137,12 +138,21 @@ export const KnowledgeGraphVisualization: React.FC<KnowledgeGraphVisualizationPr
     networkRef.current = new Network(containerRef.current, { nodes, edges }, options);
 
     // Handle node click events
-    networkRef.current.on('click', function(params) {
-      if (params.nodes.length > 0) {
+    networkRef.current.on('click', function(params: any) {
+      if (params.nodes && params.nodes.length > 0) {
         const nodeId = params.nodes[0];
-        const node = nodes.get(nodeId);
-        if (node && node.originalData && onNodeClick) {
-          onNodeClick(node.originalData as GraphNode);
+        // Use type assertion to handle the node data
+        try {
+          const nodeData = nodes.get(nodeId);
+          if (nodeData && onNodeClick) {
+            // Find the original node in our graph data
+            const originalNode = graphData.nodes.find(n => n.id === nodeId);
+            if (originalNode) {
+              onNodeClick(originalNode);
+            }
+          }
+        } catch (error) {
+          console.error("Error handling node click:", error);
         }
       }
     });

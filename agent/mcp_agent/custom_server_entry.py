@@ -35,8 +35,10 @@ def run_custom_server():
         logger.info(f"Platform: {platform.platform()}")
         logger.info(f"Working directory: {os.getcwd()}")
 
-        print(f"Starting custom MCP Agent server on http://localhost:8123")
-        print(f"Health endpoint available at http://localhost:8123/health")
+        # Use consistent port 8124
+        port = 8124
+        print(f"Starting custom MCP Agent server on http://0.0.0.0:{port}")
+        print(f"Health endpoint available at http://0.0.0.0:{port}/health")
 
         # Try to run the custom server
         try:
@@ -50,15 +52,14 @@ def run_custom_server():
                 logger.error(f"Failed to import custom_server module: {ie}")
                 raise
 
-            # Start the server with more stable configuration on port 8124
-            # Using a different port to avoid conflicts
-            port = 8124
-            print(f"Starting custom MCP Agent server on http://localhost:{port}")
-            print(f"Health endpoint available at http://localhost:{port}/health")
-            print(f"LangGraph endpoint available at http://localhost:{port}/v1/graphs/mcp-agent/invoke")
+            # Start the server with the configured port
+            # Port is already defined above
+            print(f"Starting custom MCP Agent server on http://0.0.0.0:{port}")
+            print(f"Health endpoint available at http://0.0.0.0:{port}/health")
+            print(f"LangGraph endpoint available at http://0.0.0.0:{port}/v1/graphs/mcp-agent/invoke")
             uvicorn.run(
                 "mcp_agent.custom_server:create_app",
-                host="localhost",
+                host="0.0.0.0",
                 port=port,
                 factory=True,
                 reload=False,  # Disable auto-reload to avoid issues

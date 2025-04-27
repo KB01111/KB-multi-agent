@@ -1,6 +1,7 @@
 "use client";
 
-import { ReactNode } from "react";
+import type { ReactNode } from "react";
+
 import dynamic from "next/dynamic";
 
 // Dynamically import the ChunkErrorBoundary with no SSR to avoid hydration issues

@@ -1,16 +1,17 @@
 "use client";
 
 import { useEffect } from "react";
-import { useRouter } from "next/navigation";
 
 import { useCoAgent } from "@copilotkit/react-core";
+import { useRouter } from "next/navigation";
+
 
 import { MCPAgent } from "@/components/agents/mcp-agent";
 import { AvailableAgents } from "@/lib/available-agents";
 
 export default function MCPPage() {
   const router = useRouter();
-  
+
   // Get agent state
   const { running, start } = useCoAgent({
     name: AvailableAgents.MCP_AGENT,

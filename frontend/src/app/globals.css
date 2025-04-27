@@ -2,6 +2,13 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Import CopilotKit custom styles */
+@import '../styles/copilotkit.css';
+
+/* Import custom Leaflet styles */
+@import '../styles/leaflet-custom.css';
+@import 'leaflet/dist/leaflet.css';
+
 body {
   font-family: 'Inter', sans-serif;
 }

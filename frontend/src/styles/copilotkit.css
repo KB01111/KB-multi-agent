@@ -1,0 +1,16 @@
+/* CopilotKit custom styles */
+:root {
+  --copilot-kit-primary-color: rgb(59 130 246);
+  --copilot-kit-contrast-color: rgb(255 255 255);
+  --copilot-kit-primary-color-light: rgba(59, 130, 246, 0.1);
+  --copilot-kit-primary-color-dark: rgb(37 99 235);
+  --copilot-kit-border-color: rgba(0, 0, 0, 0.1);
+  --copilot-kit-font-family: inherit;
+  --copilot-kit-font-size: 1rem;
+  --copilot-kit-line-height: 1.5;
+  --copilot-kit-z-index: 100;
+}
+
+.dark {
+  --copilot-kit-border-color: rgba(255, 255, 255, 0.1);
+}

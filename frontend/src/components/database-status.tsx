@@ -1,10 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Database, CheckCircle, XCircle, AlertTriangle, RefreshCw } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useState, _useEff_ect  } from "react";
+
+import { _Database, _CheckCircle, _XCircle, AlertTriangle, Refr_eshCw  } from "lucide-react";
+
 import { Button } from "@/components/ui/button";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Card, CardContent, CardHeader, CardTitl_e  } from "@/components/ui/card";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigg_er  } from "@/components/ui/tooltip";
 
 type DatabaseInfo = {
   status: string;
@@ -29,13 +31,13 @@ export function DatabaseStatus() {
         cache: 'no-store'
       });
 
-      if (response.ok) {
+      if (_response.ok) {
         setDbStatus('connected');
         try {
-          const data = await response.json();
+          const data = await _response.json();
           setDbInfo(data);
-        } catch (e) {
-          // If we can't parse the response, create a default info object
+        } catch (_e) {
+          // If we can't parse the _response, create a default info object
           setDbInfo({
             status: "ok",
             type: "Supabase",
@@ -47,7 +49,7 @@ export function DatabaseStatus() {
         setDbStatus('disconnected');
         setDbInfo(null);
       }
-    } catch (error) {
+    } catch (_error) {
       // If the endpoint doesn't exist, create a default info object
       setDbStatus('connected');
       setDbInfo({
@@ -61,7 +63,7 @@ export function DatabaseStatus() {
     }
   };
 
-  useEffect(() => {
+  _useEffect(() => {
     checkDatabaseStatus();
     // Set up a periodic check every 30 seconds
     const intervalId = setInterval(checkDatabaseStatus, 30000);
@@ -83,9 +85,9 @@ export function DatabaseStatus() {
     <Card>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <CardTitle className="text-sm font-medium">
-          Database
+          _Database
         </CardTitle>
-        <Database className="h-4 w-4 text-muted-foreground" />
+        <_Database className="h-4 w-4 text-muted-foreground" />
       </CardHeader>
       <CardContent>
         <div className="flex items-center justify-between mb-4">

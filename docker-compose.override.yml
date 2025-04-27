@@ -1,0 +1,23 @@
+# version: '3.8' - removed as it's obsolete
+
+services:
+  # Override frontend service for development
+  frontend:
+    build:
+      target: development
+    command: pnpm run dev
+    environment:
+      - NODE_ENV=development
+
+  # Override backend service for development
+  backend:
+    build:
+      target: development
+    environment:
+      - PYTHONDONTWRITEBYTECODE=1
+      - PYTHONUNBUFFERED=1
+    depends_on:
+      - redis
+      - postgres
+
+

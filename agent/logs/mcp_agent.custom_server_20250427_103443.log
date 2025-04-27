@@ -1,0 +1,26 @@
+2025-04-27 10:34:43,016 - mcp_agent.custom_server - INFO - Logging to file: logs\mcp_agent.custom_server_20250427_103443.log
+2025-04-27 10:34:43,184 - mcp_agent.custom_server - INFO - Created FastAPI app for MCP Agent server
+2025-04-27 10:34:43,185 - mcp_agent.custom_server - INFO - Mem0 integration enabled: False
+2025-04-27 10:34:43,185 - mcp_agent.custom_server - INFO - LiteLLM integration enabled: False
+2025-04-27 10:34:43,186 - mcp_agent.custom_server - INFO - Logfire integration enabled: False
+2025-04-27 10:34:43,186 - mcp_agent.custom_server - INFO - Supabase integration enabled: False
+2025-04-27 10:34:44,922 - mcp_agent.custom_server - INFO - Including database status endpoints
+2025-04-27 10:34:44,924 - mcp_agent.custom_server - INFO - Available routes:
+2025-04-27 10:34:44,925 - mcp_agent.custom_server - INFO -   /openapi.json [GET,HEAD]
+2025-04-27 10:34:44,926 - mcp_agent.custom_server - INFO -   /docs [GET,HEAD]
+2025-04-27 10:34:44,926 - mcp_agent.custom_server - INFO -   /docs/oauth2-redirect [GET,HEAD]
+2025-04-27 10:34:44,927 - mcp_agent.custom_server - INFO -   /redoc [GET,HEAD]
+2025-04-27 10:34:44,928 - mcp_agent.custom_server - INFO -   /health [GET]
+2025-04-27 10:34:44,929 - mcp_agent.custom_server - INFO -   /routes [GET]
+2025-04-27 10:34:44,929 - mcp_agent.custom_server - INFO -   /integrations/status [GET]
+2025-04-27 10:34:44,930 - mcp_agent.custom_server - INFO -   /memory/store [POST]
+2025-04-27 10:34:44,930 - mcp_agent.custom_server - INFO -   /memory/retrieve [GET]
+2025-04-27 10:34:44,931 - mcp_agent.custom_server - INFO -   /llm/completion [POST]
+2025-04-27 10:34:44,931 - mcp_agent.custom_server - INFO -   /connection/frontend [GET]
+2025-04-27 10:34:44,931 - mcp_agent.custom_server - INFO -   / [GET]
+2025-04-27 10:34:44,932 - mcp_agent.custom_server - INFO -   /config/mode [POST]
+2025-04-27 10:34:44,932 - mcp_agent.custom_server - INFO -   /v1/graphs/mcp-agent/invoke [POST]
+2025-04-27 10:34:44,933 - mcp_agent.custom_server - INFO -   /sentry-debug [GET]
+2025-04-27 10:34:44,933 - mcp_agent.custom_server - INFO -   /database/status [GET]
+2025-04-27 10:35:00,063 - mcp_agent.custom_server - INFO - LangGraph package is installed
+2025-04-27 10:35:00,064 - mcp_agent.custom_server - INFO - Successfully imported graph from mcp_agent.agent
